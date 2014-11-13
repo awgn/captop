@@ -59,19 +59,18 @@ void set_stop(int)
 
 
 template <typename T>
-std::string highlight (T const &value)
-{
-    std::ostringstream out;
-    out << vt100::BOLD  << value << vt100::RESET;
-    return out.str();
-}
-
-
-template <typename T>
 inline std::ostringstream &
 osstream(T &out)
 {
     return static_cast<std::ostringstream &>(out);
+}
+
+
+template <typename T>
+std::string highlight (T const &value)
+{
+    std::ostringstream out;
+    return osstream(out << vt100::BOLD  << value << vt100::RESET).str();
 }
 
 
@@ -83,16 +82,16 @@ pretty(double value)
     if (value < 1000000000) {
     if (value < 1000000) {
     if (value < 1000) {
-        return osstream(out << highlight(value)).str();
+        return osstream(out << value).str();
     }
     else ;
-        return osstream(out << highlight(value/1000) << "_K").str();
+        return osstream(out << (value/1000) << "_K").str();
     }
     else ;
-        return osstream(out << highlight(value/1000000) << "_M").str();
+        return osstream(out << (value/1000000) << "_M").str();
     }
     else ;
-        return osstream(out << highlight(value/1000000000) << "_G").str();
+        return osstream(out << (value/1000000000) << "_G").str();
 }
 
 
@@ -120,7 +119,7 @@ void print_stats(std::ostream &out, pcap_t *p)
 
     out << "packets: "   << highlight(global::count) << " (" << highlight(pps) << " pps) ";
     out << "drop: "      << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
-    out << "bandwidth: " << pretty(band) << "bit/sec " << std::endl;
+    out << "bandwidth: " << highlight(pretty(band)) << "bit/sec " << std::endl;
 
     global::count_     = global::count;
     global::bandwidth_ = global::bandwidth;
