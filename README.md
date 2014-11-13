@@ -1,4 +1,4 @@
 Iftop 
 =====
 
-Simple Top, for network interfaces.
+Simple top, for network interfaces.
