@@ -146,8 +146,9 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *)
 
 
 int
-pcap_top(options const &opt, std::string const &bpf)
+pcap_top(options const &opt, std::string const &filter)
 {
+    bpf_program fcode;
     timer_t t;
 
     itimerspec timer_spec
@@ -219,6 +220,14 @@ pcap_top(options const &opt, std::string const &bpf)
     //
     if ((status = pcap_activate(p)) != 0)
         throw std::runtime_error(std::string("pcap_activate: ") + pcap_statustostr(status));
+
+    // set BPF...
+    //
+    if (!filter.empty())
+    {
+        if (pcap_compile(p, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
+            throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(p));
+    }
 
     // start capture...
     //
