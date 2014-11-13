@@ -11,7 +11,6 @@ struct options
     std::string ifname;
 };
 
-
 namespace
 {
     struct options default_options = options

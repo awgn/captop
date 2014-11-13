@@ -5,12 +5,17 @@
 
 #include <options.hpp>
 
-namespace { std::string version = "v1.0"; }
-
-
-void usage(std::string name)
+namespace
 {
-    std::cerr << "usage: " + std::move(name) + " [OPTIONS] [BPF expression]\n\n"
+    std::string name    = "iftop";
+    std::string version = name + " v1.0";
+}
+
+
+void usage()
+{
+    std::cerr << version << std::endl << std::endl;
+    std::cerr << "usage: " + name + " [OPTIONS] [BPF expression]\n\n"
                  "  -B --buffer SIZE             Set the operating system capture buffer size.\n"
                  "  -c count                     Exit after receiving count packets.\n"
                  "  -s snaplen                   Specify the capture length of packets in bytes.\n"
@@ -32,7 +37,7 @@ try
     int i = 1;
 
     if (argc < 2)
-        usage(argv[0]);
+        usage();
 
     for(; i < argc; ++i)
     {
@@ -94,7 +99,7 @@ try
              strcmp(argv[i], "-?") == 0 ||
              strcmp(argv[i], "--help") == 0
              )
-            usage(argv[0]);
+            usage();
 
         if (argv[i][0] != '-')
             break;
@@ -109,5 +114,5 @@ try
 }
 catch(std::exception &e)
 {
-    std::cerr << "pcap-top: " << e.what() << std::endl;
+    std::cerr << name << ": " << e.what() << std::endl;
 }
