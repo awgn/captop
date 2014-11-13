@@ -140,7 +140,6 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *)
         print_stats(std::cout, p);
 
     if (global::stop) {
-        print_stats(std::cout, p);
         pcap_breakloop(p);
     }
 }
@@ -185,6 +184,9 @@ pcap_top(options const &opt, std::string const &bpf)
 
     // create a pcap handler
     //
+
+    int status;
+
     auto p = pcap_create(opt.ifname.c_str(), global::errbuf);
     if (p == nullptr)
         throw std::runtime_error(std::string(global::errbuf));
@@ -192,31 +194,38 @@ pcap_top(options const &opt, std::string const &bpf)
     if (opt.buffer_size)
     {
         std::cout << ", buffer size " << opt.buffer_size;
-        if (pcap_set_buffer_size(p, opt.buffer_size) != 0)
-            throw std::runtime_error("pcap_set_buffer: " + std::string(global::errbuf));
+        if ((status = pcap_set_buffer_size(p, opt.buffer_size)) != 0)
+            throw std::runtime_error(std::string("pcap_set_buffer: ") + pcap_statustostr(status));
     }
 
     std::cout<< std::endl;
 
     // snaplen...
     //
-    if (pcap_set_snaplen(p, opt.snaplen) != 0)
-            throw std::runtime_error("pcap_set_snaplen: " + std::string(global::errbuf));
+    if ((status = pcap_set_snaplen(p, opt.snaplen)) != 0)
+        throw std::runtime_error(std::string("pcap_set_snaplen: ") + pcap_statustostr(status));
 
     // snaplen...
     //
-    if (pcap_set_promisc(p, 1) != 0)
-            throw std::runtime_error("pcap_set_promisc: " + std::string(global::errbuf));
+    if ((status = pcap_set_promisc(p, 1)) != 0)
+        throw std::runtime_error(std::string("pcap_set_promisc: ") + pcap_statustostr(status));
+
+    // set timeout...
+    //
+    if ((status = pcap_set_timeout(p, 1000)) != 0)
+        throw std::runtime_error(std::string("pcap_set_timeout: ") + pcap_statustostr(status));
 
     // activate...
     //
-    if (pcap_activate(p) != 0)
-        throw std::runtime_error("pcap_activate error! "+ std::string(global::errbuf));
+    if ((status = pcap_activate(p)) != 0)
+        throw std::runtime_error(std::string("pcap_activate: ") + pcap_statustostr(status));
 
     // start capture...
     //
     if (pcap_loop(p, opt.count, packet_handler, reinterpret_cast<u_char *>(p)) == -1)
         throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
+
+    pcap_close(p);
 
     // print stats...
     //
