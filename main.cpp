@@ -3,7 +3,10 @@
 #include <cstring>
 #include <stdexcept>
 
+#include <options.hpp>
+
 namespace { std::string version = "v1.0"; }
+
 
 void usage(std::string name)
 {
@@ -19,33 +22,19 @@ void usage(std::string name)
 }
 
 
-struct option
-{
-    size_t buffer_size;
-    size_t count;
-    size_t snaplen;
-
-    std::string ifname;
-
-};
-
+extern int pcap_top(struct options const &, std::string const &bpf);
 
 int
 main(int argc, char *argv[])
 try
 {
-    struct option opt =
-    {
-        0,
-        0,
-        65535,
-        ""
-    };
+    auto opt = default_options;
+    int i = 1;
 
     if (argc < 2)
         usage(argv[0]);
 
-    for(int i = 1; i < argc; ++i)
+    for(; i < argc; ++i)
     {
         if ( strcmp(argv[i], "-B") == 0 ||
              strcmp(argv[i], "--buffer") == 0) {
@@ -107,12 +96,18 @@ try
              )
             usage(argv[0]);
 
-        throw std::runtime_error(std::string(argv[0]) + ": " + std::string(argv[i]) + " unknown option!");
+        if (argv[i][0] != '-')
+            break;
+
+        throw std::runtime_error(std::string(argv[i]) + " unknown option!");
     }
 
-    return 0;
+    if (opt.ifname.empty())
+        throw std::runtime_error("interface missing");
+
+    return pcap_top(opt, i == argc ? "" : argv[i]);
 }
 catch(std::exception &e)
 {
-    std::cerr << e.what() << std::endl;
+    std::cerr << "pcap-top: " << e.what() << std::endl;
 }
