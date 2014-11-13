@@ -43,6 +43,8 @@ namespace global
     uint64_t  bandwidth_ = 0, bandwidth = 0;
     uint64_t  drop_ = 0, ifdrop_ = 0;
 
+    struct pcap_stat stat_, stat;
+
     std::chrono::time_point<std::chrono::system_clock> now_;
 }
 
@@ -104,9 +106,7 @@ double persecond(T value, Duration dur)
 
 void print_stats(std::ostream &out, pcap_t *p)
 {
-    struct pcap_stat stat;
-
-    if (pcap_stats(p, &stat) < 0)
+    if (pcap_stats(p, &global::stat) < 0)
         throw std::runtime_error(std::string(global::errbuf));
 
     auto now    = std::chrono::system_clock::now();
@@ -114,8 +114,8 @@ void print_stats(std::ostream &out, pcap_t *p)
 
     auto pps    = persecond(global::count - global::count_, delta);
     auto band   = persecond((global::bandwidth - global::bandwidth_) * 8, delta);
-    auto drop   = persecond(stat.ps_drop - global::drop_, delta);
-    auto ifdrop = persecond(stat.ps_ifdrop - global::ifdrop_, delta);
+    auto drop   = persecond(global::stat.ps_drop - global::stat_.ps_drop, delta);
+    auto ifdrop = persecond(global::stat.ps_ifdrop - global::stat_.ps_ifdrop, delta);
 
     out << "packets: "   << highlight(global::count) << " (" << highlight(pps) << " pps) ";
     out << "drop: "      << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
@@ -124,8 +124,7 @@ void print_stats(std::ostream &out, pcap_t *p)
     global::count_     = global::count;
     global::bandwidth_ = global::bandwidth;
     global::now_       = now;
-    global::drop_      = stat.ps_drop;
-    global::ifdrop_    = stat.ps_drop;
+    global::stat_      = global::stat;
     global::tick       = 0;
 }
 
@@ -140,8 +139,10 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *)
     if (global::tick)
         print_stats(std::cout, p);
 
-    if (global::stop)
+    if (global::stop) {
+        print_stats(std::cout, p);
         pcap_breakloop(p);
+    }
 }
 
 
@@ -220,15 +221,10 @@ pcap_top(options const &opt, std::string const &bpf)
     // print stats...
     //
 
-    struct pcap_stat stat;
-
-    if (pcap_stats(p, &stat) < 0)
-        throw std::runtime_error(std::string(global::errbuf));
-
     std::cout << global::count << " packets captured" << std::endl;
-    std::cout << stat.ps_recv << " packets received by filter" << std::endl;
-    std::cout << stat.ps_drop << " packets dropped by kernel" << std::endl;
-    std::cout << stat.ps_ifdrop << " packets dropped by interface" << std::endl;
+    std::cout << global::stat.ps_recv << " packets received by filter" << std::endl;
+    std::cout << global::stat.ps_drop << " packets dropped by kernel" << std::endl;
+    std::cout << global::stat.ps_ifdrop << " packets dropped by interface" << std::endl;
 
     return 0;
 }
