@@ -39,6 +39,7 @@ void usage()
                  "  -c count                     Exit after receiving count packets.\n"
                  "  -s snaplen                   Specify the capture length of packets in bytes.\n"
                  "  -i --interface NAME          Listen on interface.\n"
+                 "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
                  "     --version                 Print the version strings and exit.\n"
                  "  -? --help                    Print this help.\n";
 
@@ -111,6 +112,12 @@ try
         if (strcmp(argv[i], "--version") == 0) {
             std::cout << version << std::endl;
             _Exit(0);
+        }
+
+        if ( strcmp(argv[i], "-O") == 0 ||
+             strcmp(argv[i], "--no-optimize") == 0) {
+            opt.oflag = false;
+            continue;
         }
 
 

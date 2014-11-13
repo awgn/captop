@@ -27,6 +27,7 @@ struct options
     size_t buffer_size;
     size_t count;
     size_t snaplen;
+    bool   oflag;
     std::string ifname;
 };
 
@@ -37,6 +38,7 @@ namespace
         0,
         0,
         65535,
+        true,
         ""
     };
 }
