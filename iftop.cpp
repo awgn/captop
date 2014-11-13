@@ -20,7 +20,6 @@ namespace global
     sig_atomic_t  tick = 0;
     sig_atomic_t  stop = 0;
 
-
     uint64_t  count_    = 0, count    = 0;
     uint64_t  bandwidth_ = 0, bandwidth = 0;
     uint64_t  drop_ = 0, ifdrop_ = 0;
@@ -49,6 +48,14 @@ std::string highlight (T const &value)
 }
 
 
+template <typename T>
+inline std::ostringstream &
+osstream(T &out)
+{
+    return static_cast<std::ostringstream &>(out);
+}
+
+
 std::string
 pretty(double value)
 {
@@ -57,16 +64,16 @@ pretty(double value)
     if (value < 1000000000) {
     if (value < 1000000) {
     if (value < 1000) {
-        return static_cast<std::ostringstream &>(out << highlight(value)).str();
+        return osstream(out << highlight(value)).str();
     }
     else ;
-        return static_cast<std::ostringstream &>(out << highlight(value/1000) << "_K").str();
+        return osstream(out << highlight(value/1000) << "_K").str();
     }
     else ;
-        return static_cast<std::ostringstream &>(out << highlight(value/1000000) << "_M").str();
+        return osstream(out << highlight(value/1000000) << "_M").str();
     }
     else ;
-        return static_cast<std::ostringstream &>(out << highlight(value/1000000000) << "_G").str();
+        return osstream(out << highlight(value/1000000000) << "_G").str();
 }
 
 
@@ -145,33 +152,52 @@ pcap_top(options const &opt, std::string const &bpf)
     if (timer_settime(t, 0, &timer_spec, nullptr) < 0)
         throw std::runtime_error("timer_settime");
 
-    // pcap loop...
+    // print header...
     //
 
     std::cout << "listening on " << opt.ifname << ", snaplen " << opt.snaplen;
 
-    auto pcap = pcap_open_live(opt.ifname.c_str(), opt.snaplen, 1, 1000, global::errbuf);
-    if (pcap == nullptr)
-        throw std::runtime_error(std::string(global::errbuf));
-
-    if (pcap_loop(pcap, opt.count, packet_handler, reinterpret_cast<u_char *>(pcap)) == -1)
+    // create a pcap handler
+    //
+    auto p = pcap_create(opt.ifname.c_str(), global::errbuf);
+    if (p == nullptr)
         throw std::runtime_error(std::string(global::errbuf));
 
     if (opt.buffer_size)
     {
         std::cout << ", buffer size " << opt.buffer_size;
-        if (pcap_set_buffer_size(pcap, opt.buffer_size) != 0)
-            throw std::runtime_error(std::string(global::errbuf));
+        if (pcap_set_buffer_size(p, opt.buffer_size) != 0)
+            throw std::runtime_error("pcap_set_buffer: " + std::string(global::errbuf));
     }
 
     std::cout<< std::endl;
+
+    // snaplen...
+    //
+    if (pcap_set_snaplen(p, opt.snaplen) != 0)
+            throw std::runtime_error("pcap_set_snaplen: " + std::string(global::errbuf));
+
+    // snaplen...
+    //
+    if (pcap_set_promisc(p, 1) != 0)
+            throw std::runtime_error("pcap_set_promisc: " + std::string(global::errbuf));
+
+    // activate...
+    //
+    if (pcap_activate(p) != 0)
+        throw std::runtime_error("pcap_activate: " + std::string(global::errbuf));
+
+    // start capture...
+    //
+    if (pcap_loop(p, opt.count, packet_handler, reinterpret_cast<u_char *>(p)) == -1)
+        throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
 
     // print stats...
     //
 
     struct pcap_stat stat;
 
-    if (pcap_stats(pcap, &stat) < 0)
+    if (pcap_stats(p, &stat) < 0)
         throw std::runtime_error(std::string(global::errbuf));
 
     std::cout << global::count << " packets captured" << std::endl;
