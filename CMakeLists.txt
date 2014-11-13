@@ -2,28 +2,16 @@ cmake_minimum_required(VERSION 2.4)
 
 set(CMAKE_VERBOSE_MAKEFILE 0)
 
-add_executable(iftop main.cpp iftop.cpp)
+add_executable(iftop src/main.cpp src/iftop.cpp)
 
 set(CXX_FLAGS_OPT "-O3 -march=native -Wall -std=c++11")
 
-include_directories(.)
+include_directories(src)
 
-if (USE_PFQ)
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_OPT}")
 
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L /opt/PFQ-pcap/libpcap-1.3.0/ ${CXX_FLAGS_OPT}")
+target_link_libraries(iftop -lrt -lpcap -lpthread)
 
-    include_directories(/opt/PFQ-pcap/libpcap-1.3.0/)
-
-    target_link_libraries(iftop -lpcap -lpfq -lpthread)
-
-else()
-
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_OPT}")
-
-    target_link_libraries(iftop -lrt -lpcap -lpthread)
-
-endif()
-         
 install (TARGETS iftop DESTINATION bin)
 
 
