@@ -6,7 +6,7 @@ add_executable(iftop main.cpp iftop.cpp)
 
 set(CXX_FLAGS_OPT "-O3 -march=native -Wall -std=c++11")
 
-include_directories(. lib)
+include_directories(.)
 
 if (USE_PFQ)
 
@@ -23,6 +23,7 @@ else()
     target_link_libraries(iftop -lrt -lpcap -lpthread)
 
 endif()
-
+         
+install (TARGETS iftop DESTINATION bin)
 
 
