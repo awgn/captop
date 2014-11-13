@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.4)
 
 set(CMAKE_VERBOSE_MAKEFILE 0)
 
-add_executable(pcap-top main.cpp)
+add_executable(pcap-top main.cpp pcap-top.cpp)
 
 set(CXX_FLAGS_OPT "-O3 -march=native -Wall -std=c++11")
 
