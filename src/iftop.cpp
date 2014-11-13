@@ -211,7 +211,7 @@ pcap_top(options const &opt, std::string const &bpf)
     // activate...
     //
     if (pcap_activate(p) != 0)
-        throw std::runtime_error("pcap_activate: " + std::string(global::errbuf));
+        throw std::runtime_error("pcap_activate error! "+ std::string(global::errbuf));
 
     // start capture...
     //
