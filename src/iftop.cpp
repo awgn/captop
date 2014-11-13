@@ -96,6 +96,13 @@ pretty(double value)
 }
 
 
+template <typename T, typename Duration>
+double persecond(T value, Duration dur)
+{
+    return static_cast<double>(value) * 1000000 / std::chrono::duration_cast<std::chrono::microseconds>(dur).count();
+}
+
+
 void print_stats(std::ostream &out, pcap_t *p)
 {
     struct pcap_stat stat;
@@ -104,16 +111,16 @@ void print_stats(std::ostream &out, pcap_t *p)
         throw std::runtime_error(std::string(global::errbuf));
 
     auto now    = std::chrono::system_clock::now();
-    auto delta  = std::chrono::duration_cast<std::chrono::microseconds>(now - global::now_).count();
+    auto delta  = now - global::now_;
 
-    auto pps    = static_cast<double>(global::count - global::count_) * 1000000 / delta;
-    auto band   = static_cast<double>(global::bandwidth - global::bandwidth_) * 8 * 1000000 / delta;
+    auto pps    = persecond(global::count - global::count_, delta);
+    auto band   = persecond((global::bandwidth - global::bandwidth_) * 8, delta);
+    auto drop   = persecond(stat.ps_drop - global::drop_, delta);
+    auto ifdrop = persecond(stat.ps_ifdrop - global::ifdrop_, delta);
 
-    auto drop   = static_cast<double>(stat.ps_drop - global::drop_) * 1000000 / delta;
-    auto ifdrop = static_cast<double>(stat.ps_ifdrop - global::ifdrop_) * 1000000 / delta;
-
-    out << "packets: " << highlight(global::count) << " (" << highlight(pps) << " pps) drop: "    << highlight(drop)  << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
-    out << "bandwidth: " << pretty(band)   << "bit/sec " << std::endl;
+    out << "packets: "   << highlight(global::count) << " (" << highlight(pps) << " pps) ";
+    out << "drop: "      << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
+    out << "bandwidth: " << pretty(band) << "bit/sec " << std::endl;
 
     global::count_     = global::count;
     global::bandwidth_ = global::bandwidth;
