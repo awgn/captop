@@ -37,7 +37,6 @@ namespace global
     char errbuf[PCAP_ERRBUF_SIZE];
 
     sig_atomic_t  tick = 0;
-    sig_atomic_t  stop = 0;
 
     uint64_t  count_    = 0, count    = 0;
     uint64_t  bandwidth_ = 0, bandwidth = 0;
@@ -45,7 +44,18 @@ namespace global
 
     struct pcap_stat stat_, stat;
 
+    pcap_t *p;
+
     std::chrono::time_point<std::chrono::system_clock> now_;
+}
+
+
+void print_pcap_stats()
+{
+    std::cout << global::count << " packets captured" << std::endl;
+    std::cout << global::stat.ps_recv << " packets received by filter" << std::endl;
+    std::cout << global::stat.ps_drop << " packets dropped by kernel" << std::endl;
+    std::cout << global::stat.ps_ifdrop << " packets dropped by interface" << std::endl;
 }
 
 
@@ -56,7 +66,9 @@ void tick_handler(int)
 
 void set_stop(int)
 {
-    global::stop = 1;
+    pcap_breakloop(global::p);
+    print_pcap_stats();
+    _Exit(0);
 }
 
 
@@ -131,17 +143,11 @@ void print_stats(std::ostream &out, pcap_t *p)
 
 void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *)
 {
-    auto p = reinterpret_cast<pcap_t *>(user);
-
     global::count++;
     global::bandwidth += h->len;
 
     if (global::tick)
-        print_stats(std::cout, p);
-
-    if (global::stop) {
-        pcap_breakloop(p);
-    }
+        print_stats(std::cout, global::p);
 }
 
 
@@ -188,14 +194,14 @@ pcap_top(options const &opt, std::string const &filter)
 
     int status;
 
-    auto p = pcap_create(opt.ifname.c_str(), global::errbuf);
-    if (p == nullptr)
+    global::p = pcap_create(opt.ifname.c_str(), global::errbuf);
+    if (global::p == nullptr)
         throw std::runtime_error(std::string(global::errbuf));
 
     if (opt.buffer_size)
     {
         std::cout << ", buffer size " << opt.buffer_size;
-        if ((status = pcap_set_buffer_size(p, opt.buffer_size)) != 0)
+        if ((status = pcap_set_buffer_size(global::p, opt.buffer_size)) != 0)
             throw std::runtime_error(std::string("pcap_set_buffer: ") + pcap_statustostr(status));
     }
 
@@ -203,46 +209,40 @@ pcap_top(options const &opt, std::string const &filter)
 
     // snaplen...
     //
-    if ((status = pcap_set_snaplen(p, opt.snaplen)) != 0)
+    if ((status = pcap_set_snaplen(global::p, opt.snaplen)) != 0)
         throw std::runtime_error(std::string("pcap_set_snaplen: ") + pcap_statustostr(status));
 
     // snaplen...
     //
-    if ((status = pcap_set_promisc(p, 1)) != 0)
+    if ((status = pcap_set_promisc(global::p, 1)) != 0)
         throw std::runtime_error(std::string("pcap_set_promisc: ") + pcap_statustostr(status));
 
     // set timeout...
     //
-    if ((status = pcap_set_timeout(p, 1000)) != 0)
+    if ((status = pcap_set_timeout(global::p, 1000)) != 0)
         throw std::runtime_error(std::string("pcap_set_timeout: ") + pcap_statustostr(status));
 
     // activate...
     //
-    if ((status = pcap_activate(p)) != 0)
+    if ((status = pcap_activate(global::p)) != 0)
         throw std::runtime_error(std::string("pcap_activate: ") + pcap_statustostr(status));
 
     // set BPF...
     //
     if (!filter.empty())
     {
-        if (pcap_compile(p, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
-            throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(p));
+        if (pcap_compile(global::p, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
+            throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::p));
     }
 
     // start capture...
     //
-    if (pcap_loop(p, opt.count, packet_handler, reinterpret_cast<u_char *>(p)) == -1)
+    if (pcap_loop(global::p, opt.count, packet_handler, nullptr) == -1)
         throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
 
-    pcap_close(p);
+    pcap_close(global::p);
 
-    // print stats...
-    //
-
-    std::cout << global::count << " packets captured" << std::endl;
-    std::cout << global::stat.ps_recv << " packets received by filter" << std::endl;
-    std::cout << global::stat.ps_drop << " packets dropped by kernel" << std::endl;
-    std::cout << global::stat.ps_ifdrop << " packets dropped by interface" << std::endl;
+    print_pcap_stats();
 
     return 0;
 }
