@@ -50,12 +50,17 @@ namespace global
 }
 
 
-void print_pcap_stats()
+void print_pcap_stats(pcap_t *p, uint64_t count)
 {
-    std::cout << global::count << " packets captured" << std::endl;
-    std::cout << global::stat.ps_recv << " packets received by filter" << std::endl;
-    std::cout << global::stat.ps_drop << " packets dropped by kernel" << std::endl;
-    std::cout << global::stat.ps_ifdrop << " packets dropped by interface" << std::endl;
+    struct pcap_stat stat;
+
+    if (pcap_stats(p, &stat) < 0)
+        throw std::runtime_error(std::string(global::errbuf));
+
+    std::cout << count          << " packets captured" << std::endl;
+    std::cout << stat.ps_recv   << " packets received by filter" << std::endl;
+    std::cout << stat.ps_drop   << " packets dropped by kernel" << std::endl;
+    std::cout << stat.ps_ifdrop << " packets dropped by interface" << std::endl;
 }
 
 
@@ -67,52 +72,60 @@ void tick_handler(int)
 void set_stop(int)
 {
     pcap_breakloop(global::p);
-    print_pcap_stats();
+    print_pcap_stats(global::p, global::count);
     _Exit(0);
 }
 
 
 template <typename T>
-inline std::ostringstream &
-osstream(T &out)
+std::string to_string_(std::ostringstream &out, T &&arg)
 {
-    return static_cast<std::ostringstream &>(out);
+    out << std::move(arg);
+    return out.str();
+}
+template <typename T, typename ...Ts>
+std::string to_string_(std::ostringstream &out, T &&arg, Ts&&... args)
+{
+    out << std::move(arg);
+    return to_string_(out, std::forward<Ts>(args)...);
+}
+template <typename ...Ts>
+inline std::string
+to_string(Ts&& ... args)
+{
+    std::ostringstream out;
+    return to_string_(out, std::forward<Ts>(args)...);
 }
 
 
 template <typename T>
 std::string highlight (T const &value)
 {
-    std::ostringstream out;
-    return osstream(out << vt100::BOLD  << value << vt100::RESET).str();
+    return to_string(vt100::BOLD, value, vt100::RESET);
 }
 
 
 std::string
 pretty(double value)
 {
-    std::ostringstream out;
-
     if (value < 1000000000) {
     if (value < 1000000) {
     if (value < 1000) {
-        return osstream(out << value).str();
+         return to_string(value);
     }
-    else ;
-        return osstream(out << (value/1000) << "_K").str();
+    else return to_string(value/1000, "_K");
     }
-    else ;
-        return osstream(out << (value/1000000) << "_M").str();
+    else return to_string(value/1000000, "_M");
     }
-    else ;
-        return osstream(out << (value/1000000000) << "_G").str();
+    else return to_string(value/1000000000, "_G");
 }
 
 
 template <typename T, typename Duration>
 double persecond(T value, Duration dur)
 {
-    return static_cast<double>(value) * 1000000 / std::chrono::duration_cast<std::chrono::microseconds>(dur).count();
+    return static_cast<double>(value) * 1000000 /
+        std::chrono::duration_cast<std::chrono::microseconds>(dur).count();
 }
 
 
@@ -225,7 +238,7 @@ pcap_top(options const &opt, std::string const &filter)
     // activate...
     //
     if ((status = pcap_activate(global::p)) != 0)
-        throw std::runtime_error(std::string("pcap_activate: ") + pcap_statustostr(status));
+        throw std::runtime_error(pcap_statustostr(status));
 
     // set BPF...
     //
@@ -242,7 +255,7 @@ pcap_top(options const &opt, std::string const &filter)
 
     pcap_close(global::p);
 
-    print_pcap_stats();
+    print_pcap_stats(global::p, global::count);
 
     return 0;
 }
