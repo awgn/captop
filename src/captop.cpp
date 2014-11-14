@@ -257,9 +257,9 @@ pcap_top(options const &opt, std::string const &filter)
     if (pcap_loop(global::p, opt.count, packet_handler, nullptr) == -1)
         throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
 
-    pcap_close(global::p);
-
     print_pcap_stats(global::p, global::count);
+
+    pcap_close(global::p);
 
     return 0;
 }
