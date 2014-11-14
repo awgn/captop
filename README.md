@@ -1,4 +1,4 @@
-Iftop 
-=====
+captop 
+======
 
-Simple top, for network interfaces.
+Simple top, for pcap network interfaces.
