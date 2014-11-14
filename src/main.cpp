@@ -38,6 +38,7 @@ void usage()
                  "  -B --buffer SIZE             Set the operating system capture buffer size.\n"
                  "  -c count                     Exit after receiving count packets.\n"
                  "  -s snaplen                   Specify the capture length of packets in bytes.\n"
+                 "  -t --timeout NUM             Specify the timeout in msec.\n"
                  "  -i --interface NAME          Listen on interface.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
                  "     --version                 Print the version strings and exit.\n"
@@ -94,6 +95,18 @@ try
             }
 
             opt.snaplen = static_cast<size_t>(std::atoi(argv[i]));
+            continue;
+        }
+
+        if ( strcmp(argv[i], "-t") == 0 ||
+             strcmp(argv[i], "--timeout") == 0) {
+            i++;
+            if (i == argc)
+            {
+                throw std::runtime_error("timeout missing");
+            }
+
+            opt.timeout = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 

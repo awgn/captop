@@ -27,6 +27,7 @@ struct options
     size_t buffer_size;
     size_t count;
     size_t snaplen;
+    size_t timeout;
     bool   oflag;
     std::string ifname;
 };
@@ -38,6 +39,7 @@ namespace
         0,
         0,
         65535,
+        10,
         true,
         ""
     };

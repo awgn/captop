@@ -218,8 +218,6 @@ pcap_top(options const &opt, std::string const &filter)
             throw std::runtime_error(std::string("pcap_set_buffer: ") + pcap_statustostr(status));
     }
 
-    std::cout<< std::endl;
-
     // snaplen...
     //
     if ((status = pcap_set_snaplen(global::p, opt.snaplen)) != 0)
@@ -232,8 +230,14 @@ pcap_top(options const &opt, std::string const &filter)
 
     // set timeout...
     //
-    if ((status = pcap_set_timeout(global::p, 1000)) != 0)
+
+    std::cout << ", timeout " << opt.timeout << "_ms";
+    if ((status = pcap_set_timeout(global::p, opt.timeout)) != 0)
+    {
         throw std::runtime_error(std::string("pcap_set_timeout: ") + pcap_statustostr(status));
+    }
+
+    std::cout<< std::endl;
 
     // activate...
     //
