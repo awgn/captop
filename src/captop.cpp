@@ -24,6 +24,9 @@
 #include <thread>
 #include <chrono>
 
+#include <thread>
+#include <atomic>
+
 #include <options.hpp>
 #include <vt100.hpp>
 
@@ -36,13 +39,8 @@ namespace global
 {
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    sig_atomic_t  tick = 0;
-
-    uint64_t  count_    = 0, count    = 0;
-    uint64_t  bandwidth_ = 0, bandwidth = 0;
-    uint64_t  drop_ = 0, ifdrop_ = 0;
-
-    struct pcap_stat stat_, stat;
+    std::atomic_long count;
+    std::atomic_long bandw;
 
     pcap_t *p;
 
@@ -63,11 +61,6 @@ void print_pcap_stats(pcap_t *p, uint64_t count)
     std::cout << stat.ps_ifdrop << " packets dropped by interface" << std::endl;
 }
 
-
-void tick_handler(int)
-{
-    global::tick = 1;
-}
 
 void set_stop(int)
 {
@@ -129,38 +122,52 @@ double persecond(T value, Duration dur)
 }
 
 
-void print_stats(std::ostream &out, pcap_t *p)
+void thread_stats(pcap_t *p)
 {
-    if (pcap_stats(p, &global::stat) < 0)
+    struct pcap_stat stat_, stat;
+
+    auto now_   = std::chrono::system_clock::now();
+    auto count_ = global::count.load(std::memory_order_relaxed);
+    auto bandw_ = global::bandw.load(std::memory_order_relaxed);
+
+    if (pcap_stats(p, &stat_) < 0)
         throw std::runtime_error(std::string(global::errbuf));
 
-    auto now    = std::chrono::system_clock::now();
-    auto delta  = now - global::now_;
+    for(;;)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    auto pps    = persecond(global::count - global::count_, delta);
-    auto band   = persecond((global::bandwidth - global::bandwidth_) * 8, delta);
-    auto drop   = persecond(global::stat.ps_drop - global::stat_.ps_drop, delta);
-    auto ifdrop = persecond(global::stat.ps_ifdrop - global::stat_.ps_ifdrop, delta);
+        if (pcap_stats(p, &stat) < 0)
+            throw std::runtime_error(std::string(global::errbuf));
 
-    out << "packets: "   << highlight(global::count) << " (" << highlight(pps) << " pps) ";
-    out << "drop: "      << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
-    out << "bandwidth: " << highlight(pretty(band)) << "bit/sec " << std::endl;
+        auto now = std::chrono::system_clock::now();
 
-    global::count_     = global::count;
-    global::bandwidth_ = global::bandwidth;
-    global::now_       = now;
-    global::stat_      = global::stat;
-    global::tick       = 0;
+        auto count = global::count.load(std::memory_order_relaxed);
+        auto bandw = global::bandw.load(std::memory_order_relaxed);
+
+        auto delta  = now - now_;
+
+        auto pps    = persecond(count - count_, delta);
+        auto band   = persecond((bandw - bandw_) * 8, delta);
+        auto drop   = persecond(stat.ps_drop - stat_.ps_drop, delta);
+        auto ifdrop = persecond(stat.ps_ifdrop - stat_.ps_ifdrop, delta);
+
+        std::cout << "packets: "   << highlight(count) << " (" << highlight(pps) << " pps) ";
+        std::cout << "drop: "      << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
+        std::cout << "bandwidth: " << highlight(pretty(band)) << "bit/sec " << std::endl;
+
+        count_ = count;
+        bandw_ = bandw;
+        now_   = now;
+        stat_  = stat;
+    }
 }
 
 
 void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *)
 {
-    global::count++;
-    global::bandwidth += h->len;
-
-    if (global::tick)
-        print_stats(std::cout, global::p);
+    global::count.fetch_add(1, std::memory_order_relaxed);
+    global::bandw.fetch_add(h->len, std::memory_order_relaxed);
 }
 
 
@@ -168,39 +175,19 @@ int
 pcap_top(options const &opt, std::string const &filter)
 {
     bpf_program fcode;
-    timer_t t;
-
-    itimerspec timer_spec
-    {
-        { 1, 0 },   // interval
-        { 1, 0 }    // first expiration
-    };
-
 
     // set signal handlers...
     //
-    if (signal(SIGALRM, tick_handler) == SIG_ERR)
-        throw std::runtime_error("signal");
 
     if (signal(SIGINT, set_stop) == SIG_ERR)
         throw std::runtime_error("signal");
 
-    // create a timer...
-    //
-    if (timer_create(CLOCK_REALTIME, nullptr, &t) < 0)
-        throw std::runtime_error("timer_create");
-
-    global::now_ = std::chrono::system_clock::now();
-
-    // start the timer...
-    //
-    if (timer_settime(t, 0, &timer_spec, nullptr) < 0)
-        throw std::runtime_error("timer_settime");
 
     // print header...
     //
 
     std::cout << "listening on " << opt.ifname << ", snaplen " << opt.snaplen;
+
 
     // create a pcap handler
     //
@@ -251,6 +238,11 @@ pcap_top(options const &opt, std::string const &filter)
         if (pcap_compile(global::p, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
             throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::p));
     }
+
+    // run thread of stats
+    //
+
+    std::thread (thread_stats, global::p).detach();
 
     // start capture...
     //
