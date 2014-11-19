@@ -50,6 +50,7 @@ void usage()
 }
 
 
+extern int pcap_top_gen(struct options const &, std::string const &bpf);
 extern int pcap_top_live(struct options const &, std::string const &bpf);
 extern int pcap_top_file(struct options const &, std::string const &bpf);
 
@@ -178,6 +179,9 @@ try
 
     if (!opt.ifname.empty())
         return pcap_top_live(opt, i == argc ? "" : argv[i]);
+
+    if (!opt.ofname.empty())
+        return pcap_top_gen(opt, i == argc ? "" : argv[i]);
 
     throw std::runtime_error("interface/filename missing");
 }
