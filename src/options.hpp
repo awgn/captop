@@ -29,7 +29,11 @@ struct options
     size_t snaplen;
     size_t timeout;
     bool   oflag;
+
+    std::string filename;
+
     std::string ifname;
+    std::string ofname;
 };
 
 namespace

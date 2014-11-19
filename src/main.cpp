@@ -39,7 +39,9 @@ void usage()
                  "  -c count                     Exit after receiving count packets.\n"
                  "  -s snaplen                   Specify the capture length of packets in bytes.\n"
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
-                 "  -i --interface NAME          Listen on interface.\n"
+                 "  -i --interface IFNAME        Listen on interface.\n"
+                 "  -r --read FILE               Read packets from file.\n"
+                 "  -o --output IFNAME           Inject packets to interface.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
                  "     --version                 Print the version strings and exit.\n"
                  "  -? --help                    Print this help.\n";
@@ -48,7 +50,8 @@ void usage()
 }
 
 
-extern int pcap_top(struct options const &, std::string const &bpf);
+extern int pcap_top_live(struct options const &, std::string const &bpf);
+extern int pcap_top_file(struct options const &, std::string const &bpf);
 
 int
 main(int argc, char *argv[])
@@ -122,6 +125,30 @@ try
             continue;
         }
 
+        if ( strcmp(argv[i], "-o") == 0 ||
+             strcmp(argv[i], "--output") == 0) {
+            i++;
+            if (i == argc)
+            {
+                throw std::runtime_error("output interface missing");
+            }
+
+            opt.ofname = argv[i];
+            continue;
+        }
+
+        if ( strcmp(argv[i], "-r") == 0 ||
+             strcmp(argv[i], "--read") == 0) {
+            i++;
+            if (i == argc)
+            {
+                throw std::runtime_error("filename missing");
+            }
+
+            opt.filename = argv[i];
+            continue;
+        }
+
         if (strcmp(argv[i], "--version") == 0) {
             std::cout << version << std::endl;
             _Exit(0);
@@ -146,10 +173,13 @@ try
         throw std::runtime_error(std::string(argv[i]) + " unknown option!");
     }
 
-    if (opt.ifname.empty())
-        throw std::runtime_error("interface missing");
+    if (!opt.filename.empty())
+        return pcap_top_file(opt, i == argc ? "" : argv[i]);
 
-    return pcap_top(opt, i == argc ? "" : argv[i]);
+    if (!opt.ifname.empty())
+        return pcap_top_live(opt, i == argc ? "" : argv[i]);
+
+    throw std::runtime_error("interface/filename missing");
 }
 catch(std::exception &e)
 {

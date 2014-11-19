@@ -38,34 +38,40 @@
 namespace global
 {
     char errbuf[PCAP_ERRBUF_SIZE];
+    char errbuf2[PCAP_ERRBUF_SIZE];
+
+    std::atomic_long inject;
 
     std::atomic_long count;
     std::atomic_long bandw;
 
-    pcap_t *p;
+    pcap_t *in, *out;
 
     std::chrono::time_point<std::chrono::system_clock> now_;
 }
 
 
-void print_pcap_stats(pcap_t *p, uint64_t count)
+void print_pcap_stats(pcap_t *p, uint64_t count, uint64_t inject)
 {
     struct pcap_stat stat;
 
-    if (pcap_stats(p, &stat) < 0)
-        throw std::runtime_error(std::string(global::errbuf));
-
     std::cout << count          << " packets captured" << std::endl;
-    std::cout << stat.ps_recv   << " packets received by filter" << std::endl;
-    std::cout << stat.ps_drop   << " packets dropped by kernel" << std::endl;
-    std::cout << stat.ps_ifdrop << " packets dropped by interface" << std::endl;
+    if (global::out)
+        std::cout << inject << " packets injected" << std::endl;
+
+    if (pcap_stats(p, &stat) != -1)
+    {
+        std::cout << stat.ps_recv   << " packets received by filter" << std::endl;
+        std::cout << stat.ps_drop   << " packets dropped by kernel" << std::endl;
+        std::cout << stat.ps_ifdrop << " packets dropped by interface" << std::endl;
+    }
 }
 
 
 void set_stop(int)
 {
-    pcap_breakloop(global::p);
-    print_pcap_stats(global::p, global::count);
+    pcap_breakloop(global::in);
+    print_pcap_stats(global::in, global::count, global::inject);
     _Exit(0);
 }
 
@@ -89,7 +95,6 @@ to_string(Ts&& ... args)
     std::ostringstream out;
     return to_string_(out, std::forward<Ts>(args)...);
 }
-
 
 template <typename T>
 std::string highlight (T const &value)
@@ -124,21 +129,18 @@ double persecond(T value, Duration dur)
 
 void thread_stats(pcap_t *p)
 {
-    struct pcap_stat stat_, stat;
+    struct pcap_stat stat_ = {0, 0, 0}, stat = {0, 0, 0};
 
     auto now_   = std::chrono::system_clock::now();
     auto count_ = global::count.load(std::memory_order_relaxed);
     auto bandw_ = global::bandw.load(std::memory_order_relaxed);
 
     if (pcap_stats(p, &stat_) < 0)
-        throw std::runtime_error(std::string(global::errbuf));
+        return;
 
-    for(;;)
-    {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        if (pcap_stats(p, &stat) < 0)
-            throw std::runtime_error(std::string(global::errbuf));
+     for(;; std::this_thread::sleep_for(std::chrono::seconds(1)))
+     {
+        pcap_stats(p, &stat);
 
         auto now = std::chrono::system_clock::now();
 
@@ -164,15 +166,38 @@ void thread_stats(pcap_t *p)
 }
 
 
-void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *)
+void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *payload)
 {
     global::count.fetch_add(1, std::memory_order_relaxed);
     global::bandw.fetch_add(h->len, std::memory_order_relaxed);
+
+    if (global::out &&
+        pcap_inject(global::out, payload, h->caplen) != -1)
+        global::inject.fetch_add(1, std::memory_order_relaxed);
 }
 
 
 int
-pcap_top(options const &opt, std::string const &filter)
+pcap_top_inject_live(options const &opt)
+{
+    // print header...
+    //
+
+    std::cout << "injecting to " << opt.ofname << "..." << std::endl;
+
+    // create a pcap handler
+    //
+
+    global::out = pcap_open_live(opt.ofname.c_str(), opt.snaplen, 1, opt.timeout, global::errbuf2);
+    if (global::out == nullptr)
+        throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf2));
+
+    return 0;
+}
+
+
+int
+pcap_top_live(options const &opt, std::string const &filter)
 {
     bpf_program fcode;
 
@@ -182,44 +207,49 @@ pcap_top(options const &opt, std::string const &filter)
     if (signal(SIGINT, set_stop) == SIG_ERR)
         throw std::runtime_error("signal");
 
+    // open output device...
+    //
+
+    if (!opt.ofname.empty())
+        pcap_top_inject_live(opt);
+
 
     // print header...
     //
 
     std::cout << "listening on " << opt.ifname << ", snaplen " << opt.snaplen;
 
-
     // create a pcap handler
     //
 
     int status;
 
-    global::p = pcap_create(opt.ifname.c_str(), global::errbuf);
-    if (global::p == nullptr)
+    global::in = pcap_create(opt.ifname.c_str(), global::errbuf);
+    if (global::in == nullptr)
         throw std::runtime_error(std::string(global::errbuf));
 
     if (opt.buffer_size)
     {
         std::cout << ", buffer size " << opt.buffer_size;
-        if ((status = pcap_set_buffer_size(global::p, opt.buffer_size)) != 0)
+        if ((status = pcap_set_buffer_size(global::in, opt.buffer_size)) != 0)
             throw std::runtime_error(std::string("pcap_set_buffer: ") + pcap_statustostr(status));
     }
 
     // snaplen...
     //
-    if ((status = pcap_set_snaplen(global::p, opt.snaplen)) != 0)
+    if ((status = pcap_set_snaplen(global::in, opt.snaplen)) != 0)
         throw std::runtime_error(std::string("pcap_set_snaplen: ") + pcap_statustostr(status));
 
     // snaplen...
     //
-    if ((status = pcap_set_promisc(global::p, 1)) != 0)
+    if ((status = pcap_set_promisc(global::in, 1)) != 0)
         throw std::runtime_error(std::string("pcap_set_promisc: ") + pcap_statustostr(status));
 
     // set timeout...
     //
 
     std::cout << ", timeout " << opt.timeout << "_ms";
-    if ((status = pcap_set_timeout(global::p, opt.timeout)) != 0)
+    if ((status = pcap_set_timeout(global::in, opt.timeout)) != 0)
     {
         throw std::runtime_error(std::string("pcap_set_timeout: ") + pcap_statustostr(status));
     }
@@ -228,30 +258,77 @@ pcap_top(options const &opt, std::string const &filter)
 
     // activate...
     //
-    if ((status = pcap_activate(global::p)) != 0)
+    if ((status = pcap_activate(global::in)) != 0)
         throw std::runtime_error(pcap_statustostr(status));
 
     // set BPF...
     //
     if (!filter.empty())
     {
-        if (pcap_compile(global::p, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
-            throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::p));
+        if (pcap_compile(global::in, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
+            throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::in));
     }
 
     // run thread of stats
     //
 
-    std::thread (thread_stats, global::p).detach();
+    std::thread (thread_stats, global::in).detach();
 
     // start capture...
     //
-    if (pcap_loop(global::p, opt.count, packet_handler, nullptr) == -1)
+    if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
         throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
 
-    print_pcap_stats(global::p, global::count);
+    print_pcap_stats(global::in, global::count, global::inject);
 
-    pcap_close(global::p);
+    pcap_close(global::in);
+
+    return 0;
+}
+
+
+int
+pcap_top_file(options const &opt, std::string const &filter)
+{
+    // set signal handlers...
+    //
+
+    if (signal(SIGINT, set_stop) == SIG_ERR)
+        throw std::runtime_error("signal");
+
+    // open output device...
+    //
+
+    if (!opt.ofname.empty())
+        pcap_top_inject_live(opt);
+
+    // print header...
+    //
+
+    std::cout << "reading " << opt.filename << "..." << std::endl;
+
+    // create a pcap handler
+    //
+
+    global::in = pcap_open_offline(opt.filename.c_str(), global::errbuf);
+    if (global::in == nullptr)
+        throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf));
+
+    // run thread of stats
+    //
+
+    std::thread (thread_stats, global::in).detach();
+
+    // start capture...
+    //
+    if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
+        throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    print_pcap_stats(global::in, global::count, global::inject);
+
+    pcap_close(global::in);
 
     return 0;
 }
