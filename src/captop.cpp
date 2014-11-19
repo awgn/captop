@@ -353,9 +353,14 @@ pcap_top_file(options const &opt, std::string const &filter)
 int
 pcap_top_gen(options const &opt, std::string const &filter)
 {
-    struct pcap_pkthdr hdr = { { 0, 0 }, 98, 98};
+    struct pcap_pkthdr hdr = { { 0, 0 }, 64, 64};
 
     pcap_top_inject_live(opt);
+
+    // run thread of stats
+    //
+
+    std::thread (thread_stats, global::out).detach();
 
     for(size_t n = 0; n < opt.count; n++)
         packet_handler(nullptr, &hdr, global::ping);
