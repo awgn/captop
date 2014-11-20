@@ -122,7 +122,7 @@ try
                 throw std::runtime_error("interface missing");
             }
 
-            opt.ifname = argv[i];
+            opt.in.ifname = argv[i];
             continue;
         }
 
@@ -134,7 +134,7 @@ try
                 throw std::runtime_error("output interface missing");
             }
 
-            opt.ofname = argv[i];
+            opt.out.ifname = argv[i];
             continue;
         }
 
@@ -146,7 +146,7 @@ try
                 throw std::runtime_error("filename missing");
             }
 
-            opt.filename = argv[i];
+            opt.in.filename = argv[i];
             continue;
         }
 
@@ -174,13 +174,13 @@ try
         throw std::runtime_error(std::string(argv[i]) + " unknown option!");
     }
 
-    if (!opt.filename.empty())
+    if (!opt.in.filename.empty())
         return pcap_top_file(opt, i == argc ? "" : argv[i]);
 
-    if (!opt.ifname.empty())
+    if (!opt.in.ifname.empty())
         return pcap_top_live(opt, i == argc ? "" : argv[i]);
 
-    if (!opt.ofname.empty())
+    if (!opt.out.ifname.empty() || !opt.out.filename.empty())
         return pcap_top_gen(opt, i == argc ? "" : argv[i]);
 
     throw std::runtime_error("interface/filename missing");

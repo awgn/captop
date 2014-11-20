@@ -30,10 +30,17 @@ struct options
     size_t timeout;
     bool   oflag;
 
-    std::string filename;
+    struct
+    {
+        std::string ifname;
+        std::string filename;
+    } in;
 
-    std::string ifname;
-    std::string ofname;
+    struct
+    {
+        std::string ifname;
+        std::string filename;
+    } out;
 };
 
 namespace

@@ -239,12 +239,12 @@ pcap_top_inject_live(options const &opt)
     // print header...
     //
 
-    std::cout << "injecting to " << opt.ofname << "..." << std::endl;
+    std::cout << "injecting to " << opt.out.ifname << std::endl;
 
     // create a pcap handler
     //
 
-    global::out = pcap_open_live(opt.ofname.c_str(), opt.snaplen, 1, opt.timeout, global::errbuf2);
+    global::out = pcap_open_live(opt.out.ifname.c_str(), opt.snaplen, 1, opt.timeout, global::errbuf2);
     if (global::out == nullptr)
         throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf2));
 
@@ -273,14 +273,14 @@ pcap_top_live(options const &opt, std::string const &filter)
     // print header...
     //
 
-    std::cout << "listening on " << opt.ifname << ", snaplen " << opt.snaplen;
+    std::cout << "listening on " << opt.in.ifname << ", snaplen " << opt.snaplen;
 
     // create a pcap handler
     //
 
     int status;
 
-    global::in = pcap_create(opt.ifname.c_str(), global::errbuf);
+    global::in = pcap_create(opt.in.ifname.c_str(), global::errbuf);
     if (global::in == nullptr)
         throw std::runtime_error(std::string(global::errbuf));
 
@@ -361,12 +361,12 @@ pcap_top_file(options const &opt, std::string const &filter)
     // print header...
     //
 
-    std::cout << "reading " << opt.filename << "..." << std::endl;
+    std::cout << "reading " << opt.in.filename << "..." << std::endl;
 
     // create a pcap handler
     //
 
-    global::in = pcap_open_offline(opt.filename.c_str(), global::errbuf);
+    global::in = pcap_open_offline(opt.in.filename.c_str(), global::errbuf);
     if (global::in == nullptr)
         throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf));
 
