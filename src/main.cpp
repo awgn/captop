@@ -42,6 +42,7 @@ void usage()
                  "  -i --interface IFNAME        Listen on interface.\n"
                  "  -r --read FILE               Read packets from file.\n"
                  "  -o --output IFNAME           Inject packets to interface.\n"
+                 "  -w --write FILE              Write packets to file.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
                  "     --version                 Print the version strings and exit.\n"
                  "  -? --help                    Print this help.\n";
@@ -147,6 +148,18 @@ try
             }
 
             opt.in.filename = argv[i];
+            continue;
+        }
+
+        if ( strcmp(argv[i], "-w") == 0 ||
+             strcmp(argv[i], "--write") == 0) {
+            i++;
+            if (i == argc)
+            {
+                throw std::runtime_error("filename missing");
+            }
+
+            opt.out.filename = argv[i];
             continue;
         }
 

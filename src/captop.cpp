@@ -51,6 +51,9 @@ namespace global
 
     pcap_t *in, *out;
 
+    pcap_t *dead;
+    pcap_dumper_t *dumper;
+
     std::chrono::time_point<std::chrono::system_clock> now_;
 
     const unsigned char ping[1500] =
@@ -96,6 +99,9 @@ void set_stop(int)
 {
     if (global::in)
         pcap_breakloop(global::in);
+
+    if (global::dumper)
+        pcap_dump_close(global::dumper);
 
     print_pcap_stats(global::in);
 
@@ -230,6 +236,9 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *pay
         else
             global::fail.fetch_add(1, std::memory_order_relaxed);
     }
+
+    if (global::dumper)
+        pcap_dump(reinterpret_cast<u_char *>(global::dumper), h, payload);
 }
 
 
@@ -253,6 +262,27 @@ pcap_top_inject_live(options const &opt)
 
 
 int
+pcap_top_inject_file(options const &opt)
+{
+    // print header...
+    //
+
+    std::cout << "writing to " << opt.out.filename << std::endl;
+
+    // create a pcap handler
+    //
+
+    if (!global::in)
+        throw std::runtime_error("dump to file requires input source!");
+
+    global::dumper = pcap_dump_open(global::in, opt.out.filename.c_str());
+    if (global::dumper == nullptr)
+        throw std::runtime_error(std::string("pcap_dump_open: ") + pcap_geterr(global::in));
+
+    return 0;
+}
+
+int
 pcap_top_live(options const &opt, std::string const &filter)
 {
     bpf_program fcode;
@@ -262,13 +292,6 @@ pcap_top_live(options const &opt, std::string const &filter)
 
     if (signal(SIGINT, set_stop) == SIG_ERR)
         throw std::runtime_error("signal");
-
-    // open output device...
-    //
-
-    if (!opt.ofname.empty())
-        pcap_top_inject_live(opt);
-
 
     // print header...
     //
@@ -325,6 +348,16 @@ pcap_top_live(options const &opt, std::string const &filter)
             throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::in));
     }
 
+    // open output device...
+    //
+
+    if (!opt.out.filename.empty())
+        pcap_top_inject_file(opt);
+
+    else if (!opt.out.ifname.empty())
+        pcap_top_inject_live(opt);
+
+
     // run thread of stats
     //
 
@@ -352,12 +385,6 @@ pcap_top_file(options const &opt, std::string const &filter)
     if (signal(SIGINT, set_stop) == SIG_ERR)
         throw std::runtime_error("signal");
 
-    // open output device...
-    //
-
-    if (!opt.ofname.empty())
-        pcap_top_inject_live(opt);
-
     // print header...
     //
 
@@ -369,6 +396,16 @@ pcap_top_file(options const &opt, std::string const &filter)
     global::in = pcap_open_offline(opt.in.filename.c_str(), global::errbuf);
     if (global::in == nullptr)
         throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf));
+
+    // open output device...
+    //
+
+    if (!opt.out.filename.empty())
+        pcap_top_inject_file(opt);
+
+    else if (!opt.out.ifname.empty())
+        pcap_top_inject_live(opt);
+
 
     // run thread of stats
     //
@@ -401,7 +438,11 @@ pcap_top_gen(options const &opt, std::string const &filter)
     if (signal(SIGINT, set_stop) == SIG_ERR)
         throw std::runtime_error("signal");
 
-    pcap_top_inject_live(opt);
+    if (!opt.out.filename.empty())
+        pcap_top_inject_file(opt);
+
+    else if (!opt.out.ifname.empty())
+        pcap_top_inject_live(opt);
 
     // run thread of stats
     //
