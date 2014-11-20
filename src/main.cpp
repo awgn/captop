@@ -35,15 +35,19 @@ void usage()
 {
     std::cerr << version << std::endl << std::endl;
     std::cerr << "usage: " + name + " [OPTIONS] [BPF expression]\n\n"
+                 "Pcap options:\n"
                  "  -B --buffer SIZE             Set the operating system capture buffer size.\n"
                  "  -c count                     Exit after receiving count packets.\n"
                  "  -s snaplen                   Specify the capture length of packets in bytes.\n"
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
-                 "  -i --interface IFNAME        Listen on interface.\n"
-                 "  -r --read FILE               Read packets from file.\n"
-                 "  -o --output IFNAME           Inject packets to interface.\n"
-                 "  -w --write FILE              Write packets to file.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
+                 "\nInterface:\n"
+                 "  -i --interface IFNAME        Listen on interface.\n"
+                 "  -o --output IFNAME           Inject packets to interface.\n"
+                 "\nFile:\n"
+                 "  -r --read  FILE              Read packets from file.\n"
+                 "  -w --write FILE              Write packets to file.\n"
+                 "\nMiscellaneous:\n"
                  "     --version                 Print the version strings and exit.\n"
                  "  -? --help                    Print this help.\n";
 
