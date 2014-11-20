@@ -41,11 +41,13 @@ namespace global
     char errbuf[PCAP_ERRBUF_SIZE];
     char errbuf2[PCAP_ERRBUF_SIZE];
 
-    std::atomic_long inject;
     std::atomic_long fail;
 
-    std::atomic_long count;
-    std::atomic_long bandw;
+    std::atomic_long in_count;
+    std::atomic_long out_count;
+
+    std::atomic_long in_band;
+    std::atomic_long out_band;
 
     pcap_t *in, *out;
 
@@ -74,10 +76,10 @@ void print_pcap_stats(pcap_t *p)
 {
     struct pcap_stat stat;
 
-    std::cout << global::count.load(std::memory_order_relaxed) << " packets captured" << std::endl;
+    std::cout << global::in_count.load(std::memory_order_relaxed) << " packets captured" << std::endl;
 
     if (global::out) {
-        std::cout << global::inject.load(std::memory_order_relaxed) << " packets injected, "
+        std::cout << global::out_count.load(std::memory_order_relaxed) << " packets injected, "
                   << global::fail.load(std::memory_order_relaxed) << " send failed" << std::endl;
     }
 
@@ -156,9 +158,11 @@ void thread_stats(pcap_t *p)
 {
     struct pcap_stat stat_ = {0, 0, 0}, stat = {0, 0, 0};
 
-    auto now_   = std::chrono::system_clock::now();
-    auto count_ = global::count.load(std::memory_order_relaxed);
-    auto bandw_ = global::bandw.load(std::memory_order_relaxed);
+    auto now_       = std::chrono::system_clock::now();
+    auto in_count_  = global::in_count.load(std::memory_order_relaxed);
+    auto out_count_ = global::out_count.load(std::memory_order_relaxed);
+    auto in_band_   = global::in_band.load(std::memory_order_relaxed);
+    auto out_band_  = global::out_band.load(std::memory_order_relaxed);
 
     if (pcap_stats(p, &stat_) < 0)
         return;
@@ -169,36 +173,58 @@ void thread_stats(pcap_t *p)
 
         auto now = std::chrono::system_clock::now();
 
-        auto count = global::count.load(std::memory_order_relaxed);
-        auto bandw = global::bandw.load(std::memory_order_relaxed);
+        auto in_count  = global::in_count.load(std::memory_order_relaxed);
+        auto out_count = global::out_count.load(std::memory_order_relaxed);
+
+        auto in_band   = global::in_band.load(std::memory_order_relaxed);
+        auto out_band  = global::out_band.load(std::memory_order_relaxed);
 
         auto delta  = now - now_;
 
-        auto pps    = persecond(count - count_, delta);
-        auto band   = persecond((bandw - bandw_) * 8, delta);
+        auto in_pps  = persecond(in_count - in_count_, delta);
+        auto out_pps = persecond(out_count - out_count_, delta);
+
+        auto in_bps  = persecond((in_band - in_band_) * 8, delta);
+        auto out_bps = persecond((out_band - out_band_) * 8, delta);
+
         auto drop   = persecond(stat.ps_drop - stat_.ps_drop, delta);
         auto ifdrop = persecond(stat.ps_ifdrop - stat_.ps_ifdrop, delta);
 
-        std::cout << "packets: "   << highlight(count) << " (" << highlight(pps) << " pps) ";
-        std::cout << "drop: "      << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
-        std::cout << "bandwidth: " << highlight(pretty(band)) << "bit/sec " << std::endl;
+        if (global::in) {
+            std::cout << "packets: "   << highlight(in_count) << " (" << highlight(in_pps) << " pps) ";
+            std::cout << "drop: "      << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
+            std::cout << "in bandwidth: " << highlight(pretty(in_bps)) << "bit/sec ";
+        }
 
-        count_ = count;
-        bandw_ = bandw;
-        now_   = now;
-        stat_  = stat;
+        if (global::out) {
+            std::cout << "injected: "   << highlight(out_count) << " (" << highlight(out_pps) << " pps) ";
+            std::cout << "out bandwidth: " << highlight(pretty(out_bps)) << "bit/sec";
+        }
+
+        std::cout << std::endl;
+
+        in_count_  = in_count;
+        out_count_ = out_count;
+        in_band_   = in_band;
+        out_band_  = out_band;
+        now_       = now;
+        stat_      = stat;
     }
 }
 
 
 void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *payload)
 {
-    global::count.fetch_add(1, std::memory_order_relaxed);
-    global::bandw.fetch_add(h->len, std::memory_order_relaxed);
+    global::in_count.fetch_add(1, std::memory_order_relaxed);
+    global::in_band.fetch_add(h->len, std::memory_order_relaxed);
 
     if (global::out) {
-        if (pcap_inject(global::out, payload, h->caplen) != -1)
-            global::inject.fetch_add(1, std::memory_order_relaxed);
+        if (pcap_inject(global::out, payload, h->caplen) != -1) {
+            global::out_count.fetch_add(1, std::memory_order_relaxed);
+            global::out_band.fetch_add(h->len, std::memory_order_relaxed);
+        }
+        else
+            global::fail.fetch_add(1, std::memory_order_relaxed);
     }
 }
 
