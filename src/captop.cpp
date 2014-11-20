@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <thread>
 #include <chrono>
+#include <limits>
 
 #include <thread>
 #include <atomic>
@@ -362,7 +363,9 @@ pcap_top_gen(options const &opt, std::string const &filter)
 
     std::thread (thread_stats, global::out).detach();
 
-    for(size_t n = 0; n < opt.count; n++)
+    auto stop = opt.count ? opt.count : std::numeric_limits<size_t>::max();
+
+    for(size_t n = 0; n < stop; n++)
         packet_handler(nullptr, &hdr, global::ping);
 
     return 0;
