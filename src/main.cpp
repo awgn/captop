@@ -59,6 +59,18 @@ extern int pcap_top_gen(struct options const &, std::string const &bpf);
 extern int pcap_top_live(struct options const &, std::string const &bpf);
 extern int pcap_top_file(struct options const &, std::string const &bpf);
 
+
+bool any_strcmp(const char *arg, const char *opt)
+{
+    return strcmp(arg,opt) == 0;
+}
+template <typename ...Ts>
+bool any_strcmp(const char *arg, const char *opt, Ts&&...args)
+{
+    return (strcmp(arg,opt) == 0 ? true : any_strcmp(arg, std::forward<Ts>(args)...));
+}
+
+
 int
 main(int argc, char *argv[])
 try
@@ -71,8 +83,7 @@ try
 
     for(; i < argc; ++i)
     {
-        if ( strcmp(argv[i], "-B") == 0 ||
-             strcmp(argv[i], "--buffer") == 0) {
+        if ( any_strcmp(argv[i], "-B", "--buffer") ) {
             i++;
             if (i == argc)
             {
@@ -83,8 +94,7 @@ try
             continue;
         }
 
-        if ( strcmp(argv[i], "-c") == 0 ||
-             strcmp(argv[i], "--count") == 0) {
+        if ( any_strcmp(argv[i], "-c", "--count") ) {
             i++;
             if (i == argc)
             {
@@ -95,8 +105,7 @@ try
             continue;
         }
 
-        if ( strcmp(argv[i], "-s") == 0 ||
-             strcmp(argv[i], "--snaplen") == 0) {
+        if ( any_strcmp(argv[i], "-s", "--snaplen") ) {
             i++;
             if (i == argc)
             {
@@ -107,8 +116,7 @@ try
             continue;
         }
 
-        if ( strcmp(argv[i], "-t") == 0 ||
-             strcmp(argv[i], "--timeout") == 0) {
+        if ( any_strcmp(argv[i], "-t", "--timeout") ) {
             i++;
             if (i == argc)
             {
@@ -119,8 +127,7 @@ try
             continue;
         }
 
-        if ( strcmp(argv[i], "-i") == 0 ||
-             strcmp(argv[i], "--interface") == 0) {
+        if ( any_strcmp(argv[i], "-i", "--interface") ) {
             i++;
             if (i == argc)
             {
@@ -131,8 +138,7 @@ try
             continue;
         }
 
-        if ( strcmp(argv[i], "-o") == 0 ||
-             strcmp(argv[i], "--output") == 0) {
+        if ( any_strcmp(argv[i], "-o", "--output") ) {
             i++;
             if (i == argc)
             {
@@ -143,8 +149,7 @@ try
             continue;
         }
 
-        if ( strcmp(argv[i], "-r") == 0 ||
-             strcmp(argv[i], "--read") == 0) {
+        if ( any_strcmp("-r", "--read") ) {
             i++;
             if (i == argc)
             {
@@ -155,8 +160,7 @@ try
             continue;
         }
 
-        if ( strcmp(argv[i], "-w") == 0 ||
-             strcmp(argv[i], "--write") == 0) {
+        if ( any_strcmp(argv[i], "-w", "--write") ) {
             i++;
             if (i == argc)
             {
@@ -167,22 +171,18 @@ try
             continue;
         }
 
-        if (strcmp(argv[i], "--version") == 0) {
+        if ( any_strcmp(argv[i], "--version") ) {
             std::cout << version << std::endl;
             _Exit(0);
         }
 
-        if ( strcmp(argv[i], "-O") == 0 ||
-             strcmp(argv[i], "--no-optimize") == 0) {
+        if ( any_strcmp(argv[i], "-O", "--no-optimize") ) {
             opt.oflag = false;
             continue;
         }
 
 
-        if ( strcmp(argv[i], "-h") == 0 ||
-             strcmp(argv[i], "-?") == 0 ||
-             strcmp(argv[i], "--help") == 0
-             )
+        if ( any_strcmp(argv[i], "-h", "-?", "--help") )
             usage();
 
         if (argv[i][0] != '-')
