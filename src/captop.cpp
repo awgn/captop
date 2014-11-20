@@ -42,6 +42,7 @@ namespace global
     char errbuf2[PCAP_ERRBUF_SIZE];
 
     std::atomic_long inject;
+    std::atomic_long fail;
 
     std::atomic_long count;
     std::atomic_long bandw;
@@ -69,16 +70,19 @@ namespace global
 }
 
 
-void print_pcap_stats(pcap_t *p, uint64_t count, uint64_t inject)
+void print_pcap_stats(pcap_t *p)
 {
     struct pcap_stat stat;
 
-    std::cout << count          << " packets captured" << std::endl;
-    if (global::out)
-        std::cout << inject << " packets injected" << std::endl;
+    std::cout << global::count.load(std::memory_order_relaxed) << " packets captured" << std::endl;
 
-    if (pcap_stats(p, &stat) != -1)
-    {
+    if (global::out) {
+        std::cout << global::inject.load(std::memory_order_relaxed) << " packets injected, "
+                  << global::fail.load(std::memory_order_relaxed) << " send failed" << std::endl;
+    }
+
+    if (p && pcap_stats(p, &stat) != -1) {
+
         std::cout << stat.ps_recv   << " packets received by filter" << std::endl;
         std::cout << stat.ps_drop   << " packets dropped by kernel" << std::endl;
         std::cout << stat.ps_ifdrop << " packets dropped by interface" << std::endl;
@@ -88,8 +92,11 @@ void print_pcap_stats(pcap_t *p, uint64_t count, uint64_t inject)
 
 void set_stop(int)
 {
-    pcap_breakloop(global::in);
-    print_pcap_stats(global::in, global::count, global::inject);
+    if (global::in)
+        pcap_breakloop(global::in);
+
+    print_pcap_stats(global::in);
+
     _Exit(0);
 }
 
@@ -189,8 +196,10 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *pay
     global::count.fetch_add(1, std::memory_order_relaxed);
     global::bandw.fetch_add(h->len, std::memory_order_relaxed);
 
-    if (global::out && pcap_inject(global::out, payload, h->caplen) != -1)
-        global::inject.fetch_add(1, std::memory_order_relaxed);
+    if (global::out) {
+        if (pcap_inject(global::out, payload, h->caplen) != -1)
+            global::inject.fetch_add(1, std::memory_order_relaxed);
+    }
 }
 
 
@@ -296,7 +305,7 @@ pcap_top_live(options const &opt, std::string const &filter)
     if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
         throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
 
-    print_pcap_stats(global::in, global::count, global::inject);
+    print_pcap_stats(global::in);
 
     pcap_close(global::in);
 
@@ -343,7 +352,7 @@ pcap_top_file(options const &opt, std::string const &filter)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    print_pcap_stats(global::in, global::count, global::inject);
+    print_pcap_stats(global::in);
 
     pcap_close(global::in);
 
@@ -355,6 +364,12 @@ int
 pcap_top_gen(options const &opt, std::string const &filter)
 {
     struct pcap_pkthdr hdr = { { 0, 0 }, 64, 64};
+
+    // set signal handlers...
+    //
+
+    if (signal(SIGINT, set_stop) == SIG_ERR)
+        throw std::runtime_error("signal");
 
     pcap_top_inject_live(opt);
 
