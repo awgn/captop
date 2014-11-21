@@ -227,7 +227,7 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *pay
     if (global::out) {
         int ret = pcap_inject(global::out, payload, h->caplen);
         if (ret == -1)
-            throw std::runtime_error("pcap_inject:" + std::string(global::errbuf2));
+            throw std::runtime_error("pcap_inject:" + std::string(pcap_geterr(global::out)));
 
         if (ret > 0) {
             global::out_count.fetch_add(1, std::memory_order_relaxed);
@@ -255,7 +255,7 @@ pcap_top_inject_live(options const &opt)
 
     global::out = pcap_open_live(opt.out.ifname.c_str(), opt.snaplen, 1, opt.timeout, global::errbuf2);
     if (global::out == nullptr)
-        throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf2));
+        throw std::runtime_error("pcap_open_offline:" + std::string(pcap_geterr(global::out)));
 
     return 0;
 }
@@ -311,18 +311,18 @@ pcap_top_live(options const &opt, std::string const &filter)
     {
         std::cout << ", buffer size " << opt.buffer_size;
         if ((status = pcap_set_buffer_size(global::in, opt.buffer_size)) != 0)
-            throw std::runtime_error(std::string("pcap_set_buffer: ") + pcap_statustostr(status));
+            throw std::runtime_error(std::string("pcap_set_buffer: ") + pcap_geterr(global::in));
     }
 
     // snaplen...
     //
     if ((status = pcap_set_snaplen(global::in, opt.snaplen)) != 0)
-        throw std::runtime_error(std::string("pcap_set_snaplen: ") + pcap_statustostr(status));
+        throw std::runtime_error(std::string("pcap_set_snaplen: ") + pcap_geterr(global::in));
 
     // snaplen...
     //
     if ((status = pcap_set_promisc(global::in, 1)) != 0)
-        throw std::runtime_error(std::string("pcap_set_promisc: ") + pcap_statustostr(status));
+        throw std::runtime_error(std::string("pcap_set_promisc: ") + pcap_geterr(global::in));
 
     // set timeout...
     //
@@ -330,7 +330,7 @@ pcap_top_live(options const &opt, std::string const &filter)
     std::cout << ", timeout " << opt.timeout << "_ms";
     if ((status = pcap_set_timeout(global::in, opt.timeout)) != 0)
     {
-        throw std::runtime_error(std::string("pcap_set_timeout: ") + pcap_statustostr(status));
+        throw std::runtime_error(std::string("pcap_set_timeout: ") + pcap_geterr(global::in));
     }
 
     std::cout<< std::endl;
@@ -338,7 +338,7 @@ pcap_top_live(options const &opt, std::string const &filter)
     // activate...
     //
     if ((status = pcap_activate(global::in)) != 0)
-        throw std::runtime_error(pcap_statustostr(status));
+        throw std::runtime_error(pcap_geterr(global::in));
 
     // set BPF...
     //
@@ -366,7 +366,7 @@ pcap_top_live(options const &opt, std::string const &filter)
     // start capture...
     //
     if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
-        throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
+        throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
 
     print_pcap_stats(global::in);
 
@@ -415,7 +415,7 @@ pcap_top_file(options const &opt, std::string const &filter)
     // start capture...
     //
     if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
-        throw std::runtime_error("pcap_loop: " + std::string(global::errbuf));
+        throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
