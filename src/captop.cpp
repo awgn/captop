@@ -56,12 +56,12 @@ namespace global
 
     std::chrono::time_point<std::chrono::system_clock> now_;
 
-    const unsigned char ping[1500] =
+    const unsigned char packet[1500] =
     {
             0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xbf, /* L`..UF.. */
             0x97, 0xe2, 0xff, 0xae, 0x08, 0x00, 0x45, 0x00, /* ......E. */
             0x00, 0x54, 0xb3, 0xf9, 0x40, 0x00, 0x40, 0x01, /* .T..@.@. */
-            0xf5, 0x32, 0xc0, 0xa8, 0x00, 0x02, 0xad, 0xc2, /* .2...... */
+            0xf5, 0x32, 0xc0, 0xa8, 0x00, 0x01, 0xad, 0xc2, /* .2...... */
             0x23, 0x10, 0x08, 0x00, 0xf2, 0xea, 0x42, 0x04, /* #.....B. */
             0x00, 0x01, 0xfe, 0xeb, 0xfc, 0x52, 0x00, 0x00, /* .....R.. */
             0x00, 0x00, 0x06, 0xfe, 0x02, 0x00, 0x00, 0x00, /* ........ */
@@ -219,7 +219,7 @@ void thread_stats(pcap_t *p)
 }
 
 
-void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *payload)
+void packet_handler(u_char *, const struct pcap_pkthdr *h, const u_char *payload)
 {
     global::in_count.fetch_add(1, std::memory_order_relaxed);
     global::in_band.fetch_add(h->len, std::memory_order_relaxed);
@@ -452,7 +452,7 @@ pcap_top_gen(options const &opt, std::string const &filter)
     auto stop = opt.count ? opt.count : std::numeric_limits<size_t>::max();
 
     for(size_t n = 0; n < stop; n++)
-        packet_handler(nullptr, &hdr, global::ping);
+        packet_handler(nullptr, &hdr, global::packet);
 
     return 0;
 }
