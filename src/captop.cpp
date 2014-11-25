@@ -255,7 +255,7 @@ pcap_top_inject_live(options const &opt)
 
     global::out = pcap_open_live(opt.out.ifname.c_str(), opt.snaplen, 1, opt.timeout, global::errbuf2);
     if (global::out == nullptr)
-        throw std::runtime_error("pcap_open_offline:" + std::string(pcap_geterr(global::out)));
+        throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf2));
 
     return 0;
 }
