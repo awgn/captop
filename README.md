@@ -8,7 +8,7 @@ Usage
 -----
 
 ```
-captop v1.3
+captop v1.4
 
 usage: captop [OPTIONS] [BPF expression]
 
@@ -18,6 +18,7 @@ Pcap options:
   -s snaplen                   Specify the capture length of packets in bytes.
   -t --timeout NUM             Specify the timeout in msec.
   -O --no-optimize             Do not run the packet-matching code optimizer.
+  -g --genlen                  Length of injected packets (when no input is specified).
 
 Interface:
   -i --interface IFNAME        Listen on interface.
