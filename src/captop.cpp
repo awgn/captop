@@ -438,9 +438,11 @@ pcap_top_file(options const &opt, std::string const &filter)
 
 
 int
-pcap_top_gen(options const &opt, std::string const &filter)
+pcap_top_gen(options const &opt, std::string const &)
 {
-    struct pcap_pkthdr hdr = { { 0, 0 }, 64, 64};
+    auto len = opt.genlen > 1514 ? 1514 : opt.genlen;
+
+    struct pcap_pkthdr hdr = { { 0, 0 }, len, len};
 
     // set signal handlers...
     //

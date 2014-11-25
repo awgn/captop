@@ -27,7 +27,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.3";
+    std::string version = name + " v1.4";
 }
 
 
@@ -41,6 +41,7 @@ void usage()
                  "  -s snaplen                   Specify the capture length of packets in bytes.\n"
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
+                 "  -g --genlen                  Length of injected packets (when no input is specified).\n"
                  "\nInterface:\n"
                  "  -i --interface IFNAME        Listen on interface.\n"
                  "  -o --output IFNAME           Inject packets to interface.\n"
@@ -102,6 +103,17 @@ try
             }
 
             opt.count = static_cast<size_t>(std::atoi(argv[i]));
+            continue;
+        }
+
+        if ( any_strcmp(argv[i], "-g", "--genlen") ) {
+            i++;
+            if (i == argc)
+            {
+                throw std::runtime_error("genlen missing");
+            }
+
+            opt.genlen = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 

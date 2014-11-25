@@ -28,6 +28,9 @@ struct options
     size_t count;
     size_t snaplen;
     size_t timeout;
+
+    uint32_t genlen;
+
     bool   oflag;
 
     struct
@@ -51,9 +54,11 @@ namespace
         0,
         65535,
         10,
+        98,
         true,
         { "", "" },
         { "", "" }
     };
 }
+
 
