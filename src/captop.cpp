@@ -379,6 +379,8 @@ pcap_top_live(options const &opt, std::string const &filter)
 int
 pcap_top_file(options const &opt, std::string const &filter)
 {
+    bpf_program fcode;
+
     // set signal handlers...
     //
 
@@ -396,6 +398,14 @@ pcap_top_file(options const &opt, std::string const &filter)
     global::in = pcap_open_offline(opt.in.filename.c_str(), global::errbuf);
     if (global::in == nullptr)
         throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf));
+
+    // set BPF...
+    //
+    if (!filter.empty())
+    {
+        if (pcap_compile(global::in, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
+            throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::in));
+    }
 
     // open output device...
     //
