@@ -56,7 +56,7 @@ namespace global
 
     std::chrono::time_point<std::chrono::system_clock> now_;
 
-    const unsigned char packet[1500] =
+    const unsigned char packet[1514] =
     {
             0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xbf, /* L`..UF.. */
             0x97, 0xe2, 0xff, 0xae, 0x08, 0x00, 0x45, 0x00, /* ......E. */
@@ -248,12 +248,14 @@ pcap_top_inject_live(options const &opt)
     // print header...
     //
 
-    std::cout << "injecting to " << opt.out.ifname << std::endl;
+    auto snap = opt.snaplen > opt.genlen ? opt.genlen : opt.snaplen;
+
+    std::cout << "injecting to " << opt.out.ifname << ", " << snap << " snaplen, " << opt.genlen << " genlen"  << std::endl;
 
     // create a pcap handler
     //
 
-    global::out = pcap_open_live(opt.out.ifname.c_str(), opt.snaplen, 1, opt.timeout, global::errbuf2);
+    global::out = pcap_open_live(opt.out.ifname.c_str(), snap, 1, opt.timeout, global::errbuf2);
     if (global::out == nullptr)
         throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf2));
 
