@@ -22,13 +22,13 @@ set(CMAKE_VERBOSE_MAKEFILE 0)
 
 add_executable(captop src/main.cpp src/captop.cpp)
 
-set(CXX_FLAGS_OPT "-O3 -march=native -Wall -std=c++11")
+set(CXX_FLAGS_OPT "-O0 -g -march=native -Wall -std=c++11 -L /root/GitHub/PFQ/user/libpcap/libpcap-1.3.0/")
 
 include_directories(src)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_OPT}")
 
-target_link_libraries(captop -lrt -lpcap -lpthread)
+target_link_libraries(captop -lrt -lpcap -lpthread -lpfq)
 
 install (TARGETS captop DESTINATION bin)
 
