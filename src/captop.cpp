@@ -224,8 +224,11 @@ void thread_stats(pcap_t *p)
 inline void
 packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *payload)
 {
-    global::in_count.fetch_add(1, std::memory_order_relaxed);
-    global::in_band.fetch_add(h->len, std::memory_order_relaxed);
+    if (global::in)
+    {
+        global::in_count.fetch_add(1, std::memory_order_relaxed);
+        global::in_band.fetch_add(h->len, std::memory_order_relaxed);
+    }
 
     if (global::out)
     {
@@ -234,7 +237,6 @@ packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *paylo
             auto &gen = *reinterpret_cast<std::mt19937 *>(randgen);
             auto pkt  = const_cast<u_char *>(payload);
             auto ip   = reinterpret_cast<iphdr *>(pkt + 14);
-
             ip->saddr = static_cast<uint32_t>(gen());
             ip->daddr = static_cast<uint32_t>(gen());
         }
@@ -243,7 +245,8 @@ packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *paylo
         if (ret == -1)
             throw std::runtime_error("pcap_inject:" + std::string(pcap_geterr(global::out)));
 
-        if (ret > 0) {
+        if (ret > 0)
+        {
             global::out_count.fetch_add(1, std::memory_order_relaxed);
             global::out_band.fetch_add(h->len, std::memory_order_relaxed);
         }
