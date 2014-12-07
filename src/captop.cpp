@@ -221,7 +221,8 @@ void thread_stats(pcap_t *p)
 }
 
 
-void packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *payload)
+inline void
+packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *payload)
 {
     global::in_count.fetch_add(1, std::memory_order_relaxed);
     global::in_band.fetch_add(h->len, std::memory_order_relaxed);
