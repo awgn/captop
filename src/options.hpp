@@ -32,6 +32,7 @@ struct options
     uint32_t genlen;
 
     bool   oflag;
+    bool   rand_ip;
 
     struct
     {
@@ -56,6 +57,7 @@ namespace
         10,
         1514,
         true,
+        false,
         { "", "" },
         { "", "" }
     };

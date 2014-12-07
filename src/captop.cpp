@@ -24,6 +24,7 @@
 #include <thread>
 #include <chrono>
 #include <limits>
+#include <random>
 
 #include <thread>
 #include <atomic>
@@ -33,6 +34,7 @@
 
 #include <signal.h>
 #include <time.h>
+#include <netinet/ip.h>
 #include <pcap/pcap.h>
 
 
@@ -56,7 +58,7 @@ namespace global
 
     std::chrono::time_point<std::chrono::system_clock> now_;
 
-    const unsigned char packet[1514] =
+    unsigned char packet[1514] =
     {
             0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xbf, /* L`..UF.. */
             0x97, 0xe2, 0xff, 0xae, 0x08, 0x00, 0x45, 0x00, /* ......E. */
@@ -219,12 +221,23 @@ void thread_stats(pcap_t *p)
 }
 
 
-void packet_handler(u_char *, const struct pcap_pkthdr *h, const u_char *payload)
+void packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *payload)
 {
     global::in_count.fetch_add(1, std::memory_order_relaxed);
     global::in_band.fetch_add(h->len, std::memory_order_relaxed);
 
-    if (global::out) {
+    if (global::out)
+    {
+        if (randgen)
+        {
+            auto &gen = *reinterpret_cast<std::mt19937 *>(randgen);
+            auto pkt  = const_cast<u_char *>(payload);
+            auto ip   = reinterpret_cast<iphdr *>(pkt + 14);
+
+            ip->saddr = static_cast<uint32_t>(gen());
+            ip->daddr = static_cast<uint32_t>(gen());
+        }
+
         int ret = pcap_inject(global::out, payload, h->caplen);
         if (ret == -1)
             throw std::runtime_error("pcap_inject:" + std::string(pcap_geterr(global::out)));
@@ -466,8 +479,10 @@ pcap_top_gen(options const &opt, std::string const &)
 
     auto stop = opt.count ? opt.count : std::numeric_limits<size_t>::max();
 
+    std::mt19937 gen;
+
     for(size_t n = 0; n < stop; n++)
-        packet_handler(nullptr, &hdr, global::packet);
+        packet_handler(reinterpret_cast<u_char *>(opt.rand_ip ? &gen : nullptr), &hdr, global::packet);
 
     return 0;
 }

@@ -27,7 +27,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.5";
+    std::string version = name + " v1.6";
 }
 
 
@@ -39,9 +39,11 @@ void usage()
                  "  -B --buffer SIZE             Set the operating system capture buffer size.\n"
                  "  -c count                     Exit after receiving count packets.\n"
                  "  -s --snaplen VALUE           Specify the capture length of packets in bytes.\n"
-                 "  -g --genlen  VALUE           Specify the length of injected packets (when no input is specified).\n"
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
+                 "\nGenerator:\n"
+                 "  -R --rand-ip                 Randomize IPs addresses\n"
+                 "  -g --genlen  VALUE           Specify the length of injected packets (when no input is specified).\n"
                  "\nInterface:\n"
                  "  -i --interface IFNAME        Listen on interface.\n"
                  "  -o --output IFNAME           Inject packets to interface.\n"
@@ -191,6 +193,10 @@ try
             continue;
         }
 
+        if ( any_strcmp(argv[i], "-R", "--rand-ip") ) {
+            opt.rand_ip = true;
+            continue;
+        }
 
         if ( any_strcmp(argv[i], "-h", "-?", "--help") )
             usage();
