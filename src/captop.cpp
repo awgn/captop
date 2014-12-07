@@ -284,6 +284,7 @@ pcap_top_inject_file(options const &opt)
     return 0;
 }
 
+
 int
 pcap_top_live(options const &opt, std::string const &filter)
 {
@@ -469,5 +470,21 @@ pcap_top_gen(options const &opt, std::string const &)
         packet_handler(nullptr, &hdr, global::packet);
 
     return 0;
+}
+
+
+int
+pcap_top(options const &opt, std::string const &filter)
+{
+    if (!opt.in.filename.empty())
+        return pcap_top_file(opt, filter);
+
+    if (!opt.in.ifname.empty())
+        return pcap_top_live(opt, filter);
+
+    if (!opt.out.ifname.empty() || !opt.out.filename.empty())
+        return pcap_top_gen(opt, filter);
+
+    throw std::runtime_error("interface/filename missing");
 }
 

@@ -56,9 +56,7 @@ void usage()
 }
 
 
-extern int pcap_top_gen(struct options const &, std::string const &bpf);
-extern int pcap_top_live(struct options const &, std::string const &bpf);
-extern int pcap_top_file(struct options const &, std::string const &bpf);
+extern int pcap_top(struct options const &, std::string const &);
 
 
 bool any_strcmp(const char *arg, const char *opt)
@@ -203,16 +201,7 @@ try
         throw std::runtime_error(std::string(argv[i]) + " unknown option!");
     }
 
-    if (!opt.in.filename.empty())
-        return pcap_top_file(opt, i == argc ? "" : argv[i]);
-
-    if (!opt.in.ifname.empty())
-        return pcap_top_live(opt, i == argc ? "" : argv[i]);
-
-    if (!opt.out.ifname.empty() || !opt.out.filename.empty())
-        return pcap_top_gen(opt, i == argc ? "" : argv[i]);
-
-    throw std::runtime_error("interface/filename missing");
+    return pcap_top(opt, i == argc ? "" : argv[i]);
 }
 catch(std::exception &e)
 {
