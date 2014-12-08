@@ -27,7 +27,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.6";
+    std::string version = name + " v1.7";
 }
 
 
