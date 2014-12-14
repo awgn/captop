@@ -459,8 +459,6 @@ pcap_top_gen(options const &opt, std::string const &)
 {
     auto len = opt.genlen > 1514 ? 1514 : opt.genlen;
 
-    struct pcap_pkthdr hdr = { { 0, 0 }, len, len};
-
     // set signal handlers...
     //
 
@@ -482,8 +480,25 @@ pcap_top_gen(options const &opt, std::string const &)
 
     std::mt19937 gen;
 
+    auto ip = reinterpret_cast<iphdr *>(global::packet + 14);
+
     for(size_t n = 0; n < stop; n++)
-        packet_handler(reinterpret_cast<u_char *>(opt.rand_ip ? &gen : nullptr), &hdr, global::packet);
+    {
+            if (opt.rand_ip)
+            {
+                ip->saddr = static_cast<uint32_t>(gen());
+                ip->daddr = static_cast<uint32_t>(gen());
+            }
+
+            int ret = pcap_inject(global::out, global::packet, len);
+            if (ret >= 0)
+            {
+                global::out_count.fetch_add(1, std::memory_order_relaxed);
+                global::out_band.fetch_add(len, std::memory_order_relaxed);
+            }
+            else
+                global::fail.fetch_add(1, std::memory_order_relaxed);
+    }
 
     return 0;
 }
