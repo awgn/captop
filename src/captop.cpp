@@ -363,6 +363,9 @@ pcap_top_live(options const &opt, std::string const &filter)
     {
         if (pcap_compile(global::in, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
             throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::in));
+
+        if (pcap_setfilter(global::in, &fcode) < 0)
+            throw std::runtime_error(std::string("pcap_setfilter: ") + pcap_geterr(global::in));
     }
 
     // open output device...
@@ -422,6 +425,9 @@ pcap_top_file(options const &opt, std::string const &filter)
     {
         if (pcap_compile(global::in, &fcode, filter.c_str(), opt.oflag, PCAP_NETMASK_UNKNOWN) < 0)
             throw std::runtime_error(std::string("pcap_compile: ") + pcap_geterr(global::in));
+
+        if (pcap_setfilter(global::in, &fcode) < 0)
+            throw std::runtime_error(std::string("pcap_setfilter: ") + pcap_geterr(global::in));
     }
 
     // open output device...
