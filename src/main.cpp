@@ -27,7 +27,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.7";
+    std::string version = name + " v1.8";
 }
 
 
@@ -85,99 +85,81 @@ try
     for(; i < argc; ++i)
     {
         if ( any_strcmp(argv[i], "-B", "--buffer") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("buffer size missing");
-            }
 
             opt.buffer_size = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 
         if ( any_strcmp(argv[i], "-c") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("count missing");
-            }
 
             opt.count = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 
         if ( any_strcmp(argv[i], "-g", "--genlen") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("genlen missing");
-            }
 
             opt.genlen = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 
         if ( any_strcmp(argv[i], "-s", "--snaplen") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("snaplen missing");
-            }
 
             opt.snaplen = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 
         if ( any_strcmp(argv[i], "-t", "--timeout") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("timeout missing");
-            }
 
             opt.timeout = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 
         if ( any_strcmp(argv[i], "-i", "--interface") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("interface missing");
-            }
 
             opt.in.ifname = argv[i];
             continue;
         }
 
         if ( any_strcmp(argv[i], "-o", "--output") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("output interface missing");
-            }
 
             opt.out.ifname = argv[i];
             continue;
         }
 
         if ( any_strcmp("-r", "--read") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("filename missing");
-            }
 
             opt.in.filename = argv[i];
             continue;
         }
 
         if ( any_strcmp(argv[i], "-w", "--write") ) {
-            i++;
-            if (i == argc)
-            {
+
+            if (++i == argc)
                 throw std::runtime_error("filename missing");
-            }
 
             opt.out.filename = argv[i];
             continue;

@@ -24,7 +24,7 @@ add_executable(captop src/main.cpp src/captop.cpp)
 
 set(CXX_FLAGS_OPT "-O2 -march=native -Wall -std=c++11 -L ../PFQ/user/libpcap/libpcap-1.3.0/")
 
-include_directories(src)
+include_directories(hdr)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_OPT}")
 
