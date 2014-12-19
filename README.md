@@ -8,7 +8,8 @@ Usage
 -----
 
 ```
-captop v1.9
+captop v1.10
+libpcap version 1.6.2
 
 usage: captop [OPTIONS] [BPF expression]
 
@@ -20,12 +21,12 @@ Pcap options:
   -O --no-optimize             Do not run the packet-matching code optimizer.
 
 Generator:
-  -R --rand-ip                 Randomize IPs addresses
-  -g --genlen  VALUE           Specify the length of injected packets (when no input is specified).
+  -R --rand-ip                 Randomize IPs addresses.
+  -g --genlen  VALUE           Specify the length of injected packets.
 
 Interface:
   -i --interface IFNAME        Listen on interface.
-  -o --output IFNAME           Inject packets to interface.
+  -o --output IFNAME           Inject packets into interface.
 
 File:
   -r --read  FILE              Read packets from file.

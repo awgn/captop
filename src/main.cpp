@@ -30,7 +30,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.9";
+    std::string version = name + " v1.10";
 }
 
 
@@ -47,11 +47,11 @@ void usage()
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
                  "\nGenerator:\n"
-                 "  -R --rand-ip                 Randomize IPs addresses\n"
-                 "  -g --genlen  VALUE           Specify the length of injected packets (when no input is specified).\n"
+                 "  -R --rand-ip                 Randomize IPs addresses.\n"
+                 "  -g --genlen  VALUE           Specify the length of injected packets.\n"
                  "\nInterface:\n"
                  "  -i --interface IFNAME        Listen on interface.\n"
-                 "  -o --output IFNAME           Inject packets to interface.\n"
+                 "  -o --output IFNAME           Inject packets into interface.\n"
                  "\nFile:\n"
                  "  -r --read  FILE              Read packets from file.\n"
                  "  -w --write FILE              Write packets to file.\n"
