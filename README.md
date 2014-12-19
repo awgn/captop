@@ -1,8 +1,7 @@
 captop 
 ======
 
-Simple top, for pcap network interfaces.
-
+Utility to measure the performance of pcap network interfaces.
 
 Usage
 -----
