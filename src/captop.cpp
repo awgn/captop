@@ -17,6 +17,11 @@
  *
  */
 
+#include <signal.h>
+#include <time.h>
+#include <netinet/ip.h>
+#include <pcap/pcap.h>
+
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -25,17 +30,11 @@
 #include <chrono>
 #include <limits>
 #include <random>
-
 #include <thread>
 #include <atomic>
 
 #include <options.hpp>
-#include <vt100.hpp>
-
-#include <signal.h>
-#include <time.h>
-#include <netinet/ip.h>
-#include <pcap/pcap.h>
+#include <util.hpp>
 
 
 namespace global
@@ -108,57 +107,6 @@ void set_stop(int)
     print_pcap_stats(global::in);
 
     _Exit(0);
-}
-
-
-template <typename T>
-std::string to_string_(std::ostringstream &out, T &&arg)
-{
-    out << std::move(arg);
-    return out.str();
-}
-template <typename T, typename ...Ts>
-std::string to_string_(std::ostringstream &out, T &&arg, Ts&&... args)
-{
-    out << std::move(arg);
-    return to_string_(out, std::forward<Ts>(args)...);
-}
-template <typename ...Ts>
-inline std::string
-to_string(Ts&& ... args)
-{
-    std::ostringstream out;
-    return to_string_(out, std::forward<Ts>(args)...);
-}
-
-template <typename T>
-std::string highlight (T const &value)
-{
-    return to_string(vt100::BOLD, value, vt100::RESET);
-}
-
-
-std::string
-pretty(double value)
-{
-    if (value < 1000000000) {
-    if (value < 1000000) {
-    if (value < 1000) {
-         return to_string(value);
-    }
-    else return to_string(value/1000, "_K");
-    }
-    else return to_string(value/1000000, "_M");
-    }
-    else return to_string(value/1000000000, "_G");
-}
-
-
-template <typename T, typename Duration>
-double persecond(T value, Duration dur)
-{
-    return static_cast<double>(value) * 1000000 /
-        std::chrono::duration_cast<std::chrono::microseconds>(dur).count();
 }
 
 
