@@ -147,7 +147,7 @@ try
             continue;
         }
 
-        if ( any_strcmp("-r", "--read") ) {
+        if ( any_strcmp(argv[i], "-r", "--read") ) {
 
             if (++i == argc)
                 throw std::runtime_error("filename missing");
