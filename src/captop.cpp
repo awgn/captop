@@ -173,30 +173,30 @@ void thread_stats(pcap_t *p)
     auto out_band_  = global::out_band.load(std::memory_order_relaxed);
 
     if (pcap_stats(p, &stat_) < 0)
+    {
+        std::cout << "cannot read stats: " << pcap_geterr(p) << std::endl;
         return;
+    }
 
-     for(;; std::this_thread::sleep_for(std::chrono::seconds(1)))
-     {
+    for(;; std::this_thread::sleep_for(std::chrono::seconds(1)))
+    {
         pcap_stats(p, &stat);
 
         auto now = std::chrono::system_clock::now();
 
         auto in_count  = global::in_count.load(std::memory_order_relaxed);
         auto out_count = global::out_count.load(std::memory_order_relaxed);
-
         auto in_band   = global::in_band.load(std::memory_order_relaxed);
         auto out_band  = global::out_band.load(std::memory_order_relaxed);
 
-        auto delta  = now - now_;
+        auto delta   = now - now_;
 
         auto in_pps  = persecond(in_count - in_count_, delta);
         auto out_pps = persecond(out_count - out_count_, delta);
-
         auto in_bps  = persecond((in_band - in_band_) * 8, delta);
         auto out_bps = persecond((out_band - out_band_) * 8, delta);
-
-        auto drop   = persecond(stat.ps_drop - stat_.ps_drop, delta);
-        auto ifdrop = persecond(stat.ps_ifdrop - stat_.ps_ifdrop, delta);
+        auto drop    = persecond(stat.ps_drop - stat_.ps_drop, delta);
+        auto ifdrop  = persecond(stat.ps_ifdrop - stat_.ps_ifdrop, delta);
 
         if (global::in) {
             std::cout << "packets: "   << highlight(in_count) << " (" << highlight(in_pps) << " pps) ";
@@ -407,10 +407,6 @@ pcap_top_file(options const &opt, std::string const &filter)
     if (signal(SIGINT, set_stop) == SIG_ERR)
         throw std::runtime_error("signal");
 
-    // print header...
-    //
-
-    std::cout << "reading " << opt.in.filename << "..." << std::endl;
 
     // create a pcap handler
     //
@@ -439,18 +435,20 @@ pcap_top_file(options const &opt, std::string const &filter)
     else if (!opt.out.ifname.empty())
         pcap_top_inject_live(opt);
 
-
     // run thread of stats
     //
 
-    std::thread (thread_stats, global::in).detach();
+    std::thread (thread_stats, global::out).detach();
+
+    // print header...
+    //
+
+    std::cout << "reading " << opt.in.filename << "..." << std::endl;
 
     // start capture...
     //
     if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
         throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     print_pcap_stats(global::in);
 
