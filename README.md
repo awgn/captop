@@ -8,7 +8,7 @@ Usage
 -----
 
 ```
-captop v1.8
+captop v1.9
 
 usage: captop [OPTIONS] [BPF expression]
 
