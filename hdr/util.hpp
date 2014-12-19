@@ -20,10 +20,23 @@
 #pragma once
 
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <chrono>
 
 #include <vt100.hpp>
+
+
+inline bool any_strcmp(const char *arg, const char *opt)
+{
+    return strcmp(arg,opt) == 0;
+}
+template <typename ...Ts>
+inline bool any_strcmp(const char *arg, const char *opt, Ts&&...args)
+{
+    return (strcmp(arg,opt) == 0 ? true : any_strcmp(arg, std::forward<Ts>(args)...));
+}
+
 
 template <typename T>
 std::string to_string_(std::ostringstream &out, T &&arg)

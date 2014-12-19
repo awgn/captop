@@ -17,14 +17,15 @@
  *
  */
 
+#include <pcap/pcap.h>
+
 #include <iostream>
 #include <string>
 #include <cstring>
 #include <stdexcept>
 
 #include <options.hpp>
-
-#include <pcap/pcap.h>
+#include <util.hpp>
 
 namespace
 {
@@ -63,17 +64,6 @@ void usage()
 
 
 extern int pcap_top(struct options const &, std::string const &);
-
-
-bool any_strcmp(const char *arg, const char *opt)
-{
-    return strcmp(arg,opt) == 0;
-}
-template <typename ...Ts>
-bool any_strcmp(const char *arg, const char *opt, Ts&&...args)
-{
-    return (strcmp(arg,opt) == 0 ? true : any_strcmp(arg, std::forward<Ts>(args)...));
-}
 
 
 int
