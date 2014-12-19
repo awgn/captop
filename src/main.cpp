@@ -24,6 +24,8 @@
 
 #include <options.hpp>
 
+#include <pcap/pcap.h>
+
 namespace
 {
     std::string name    = "captop";
@@ -33,7 +35,9 @@ namespace
 
 void usage()
 {
-    std::cerr << version << std::endl << std::endl;
+    std::cerr << version << std::endl;
+    std::cerr << pcap_lib_version() << std::endl << std::endl;
+
     std::cerr << "usage: " + name + " [OPTIONS] [BPF expression]\n\n"
                  "Pcap options:\n"
                  "  -B --buffer SIZE             Set the operating system capture buffer size.\n"

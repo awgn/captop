@@ -242,7 +242,7 @@ packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *paylo
         }
 
         int ret = pcap_inject(global::out, payload, h->caplen);
-        if (ret >= 0)
+        if (ret != -1)
         {
             global::out_count.fetch_add(1, std::memory_order_relaxed);
             global::out_band.fetch_add(h->len, std::memory_order_relaxed);
