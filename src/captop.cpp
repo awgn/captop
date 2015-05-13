@@ -170,7 +170,7 @@ void thread_stats(pcap_t *p)
 
 
 inline void
-packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *payload)
+packet_handler(u_char *, const struct pcap_pkthdr *h, const u_char *payload)
 {
     if (global::in)
     {
@@ -180,15 +180,6 @@ packet_handler(u_char *randgen, const struct pcap_pkthdr *h, const u_char *paylo
 
     if (global::out)
     {
-        if (randgen)
-        {
-            auto &gen = *reinterpret_cast<std::mt19937 *>(randgen);
-            auto pkt  = const_cast<u_char *>(payload);
-            auto ip   = reinterpret_cast<iphdr *>(pkt + 14);
-            ip->saddr = static_cast<uint32_t>(gen());
-            ip->daddr = static_cast<uint32_t>(gen());
-        }
-
         int ret = pcap_inject(global::out, payload, h->caplen);
         if (ret != -1)
         {
@@ -219,7 +210,7 @@ pcap_top_inject_live(options const &opt)
 
     global::out = pcap_open_live(opt.out.ifname.c_str(), snap, 1, opt.timeout, global::errbuf2);
     if (global::out == nullptr)
-        throw std::runtime_error("pcap_open_offline:" + std::string(global::errbuf2));
+        throw std::runtime_error("pcap_open_live:" + std::string(global::errbuf2));
 
     return 0;
 }
@@ -276,7 +267,7 @@ pcap_top_live(options const &opt, std::string const &filter)
     {
         std::cout << ", buffer size " << opt.buffer_size;
         if ((status = pcap_set_buffer_size(global::in, opt.buffer_size)) != 0)
-            throw std::runtime_error(std::string("pcap_set_buffer: ") + pcap_geterr(global::in));
+            throw std::runtime_error(std::string("pcap_set_buffer_size: ") + pcap_geterr(global::in));
     }
 
     // snaplen...
