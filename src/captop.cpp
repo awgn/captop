@@ -120,6 +120,8 @@ void thread_stats(pcap_t *p)
     auto in_band_   = global::in_band.load(std::memory_order_relaxed);
     auto out_band_  = global::out_band.load(std::memory_order_relaxed);
 
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     if (pcap_stats(p, &stat_) < 0)
     {
         std::cout << "cannot read stats: " << pcap_geterr(p) << std::endl;
@@ -324,8 +326,26 @@ pcap_top_live(options const &opt, std::string const &filter)
 
     // start capture...
     //
-    if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
-        throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
+    if (!opt.next)
+    {
+        if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
+            throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
+    }
+    else
+    {
+        std::cout << "using pcap_next." << std::endl;
+        auto stop = opt.count ? opt.count : std::numeric_limits<size_t>::max();
+        for(size_t n = 0; n < stop; )
+        {
+            struct pcap_pkthdr hdr;
+            const u_char *pkt = pcap_next(global::in, &hdr);
+            if (pkt)
+            {
+                packet_handler(nullptr, &hdr, pkt);
+                n++;
+            }
+        }
+    }
 
     print_pcap_stats(global::in);
 
@@ -386,8 +406,25 @@ pcap_top_file(options const &opt, std::string const &filter)
 
     // start capture...
     //
-    if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
-        throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
+    if (!opt.next)
+    {
+        if (pcap_loop(global::in, opt.count, packet_handler, nullptr) == -1)
+            throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
+    }
+    else {
+        std::cout << "using pcap_next." << std::endl;
+        auto stop = opt.count ? opt.count : std::numeric_limits<size_t>::max();
+        for(size_t n = 0; n < stop; )
+        {
+            struct pcap_pkthdr hdr;
+            const u_char *pkt = pcap_next(global::in, &hdr);
+            if (pkt)
+            {
+                packet_handler(nullptr, &hdr, pkt);
+                n++;
+            }
+        }
+    }
 
     print_pcap_stats(global::in);
 

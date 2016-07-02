@@ -46,6 +46,7 @@ void usage()
                  "  -s --snaplen VALUE           Specify the capture length of packets in bytes.\n"
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
+                 "     --next                    Use pcap_next instead of pcap_loop.\n"
                  "\nGenerator:\n"
                  "  -R --rand-ip                 Randomize IPs addresses.\n"
                  "  -g --genlen  VALUE           Specify the length of injected packets.\n"
@@ -166,6 +167,11 @@ try
 
         if ( any_strcmp(argv[i], "-O", "--no-optimize") ) {
             opt.oflag = false;
+            continue;
+        }
+
+        if ( any_strcmp(argv[i], "--next") ) {
+            opt.next = true;
             continue;
         }
 

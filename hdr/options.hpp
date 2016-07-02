@@ -33,6 +33,7 @@ struct options
 
     bool   oflag;
     bool   rand_ip;
+    bool   next;
 
     struct
     {
@@ -57,6 +58,7 @@ namespace
         10,
         1514,
         true,
+        false,
         false,
         { "", "" },
         { "", "" }
