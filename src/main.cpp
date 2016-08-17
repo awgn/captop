@@ -36,8 +36,7 @@ namespace
 
 void usage()
 {
-    std::cerr << version << std::endl;
-    std::cerr << pcap_lib_version() << std::endl << std::endl;
+    std::cerr << version << " (" << pcap_lib_version() << ")" << std::endl << std::endl;
 
     std::cerr << "usage: " + name + " [OPTIONS] [BPF expression]\n\n"
                  "Pcap options:\n"

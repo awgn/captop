@@ -20,7 +20,10 @@ cmake_minimum_required(VERSION 2.4)
 
 set(CMAKE_VERBOSE_MAKEFILE 0)
 
-add_executable(captop src/main.cpp src/captop.cpp)
+add_executable(captop src/main.cpp 
+                      src/captop.cpp
+                      src/handler.cpp
+                      src/global.cpp)
 
 set(CXX_FLAGS_OPT "-O2 -march=native -Wall -std=c++11")
 

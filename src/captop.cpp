@@ -33,47 +33,10 @@
 #include <thread>
 #include <atomic>
 
+#include <handler.hpp>
+#include <global.hpp>
 #include <options.hpp>
 #include <util.hpp>
-
-
-namespace global
-{
-    char errbuf[PCAP_ERRBUF_SIZE];
-    char errbuf2[PCAP_ERRBUF_SIZE];
-
-    std::atomic_long fail;
-
-    std::atomic_long in_count;
-    std::atomic_long out_count;
-
-    std::atomic_long in_band;
-    std::atomic_long out_band;
-
-    pcap_t *in, *out;
-
-    pcap_t *dead;
-    pcap_dumper_t *dumper;
-
-    std::chrono::time_point<std::chrono::system_clock> now_;
-
-    unsigned char packet[1514] =
-    {
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xbf, /* L`..UF.. */
-            0x97, 0xe2, 0xff, 0xae, 0x08, 0x00, 0x45, 0x00, /* ......E. */
-            0x00, 0x54, 0xb3, 0xf9, 0x40, 0x00, 0x40, 0x01, /* .T..@.@. */
-            0xf5, 0x32, 0xc0, 0xa8, 0x00, 0x01, 0xad, 0xc2, /* .2...... */
-            0x23, 0x10, 0x08, 0x00, 0xf2, 0xea, 0x42, 0x04, /* #.....B. */
-            0x00, 0x01, 0xfe, 0xeb, 0xfc, 0x52, 0x00, 0x00, /* .....R.. */
-            0x00, 0x00, 0x06, 0xfe, 0x02, 0x00, 0x00, 0x00, /* ........ */
-            0x00, 0x00, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, /* ........ */
-            0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, /* ........ */
-            0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, /* .. !"#$% */
-            0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, /* &'()*+,- */
-            0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, /* ./012345 */
-            0x36, 0x37                                      /* 67 */
-    };
-}
 
 
 void print_pcap_stats(pcap_t *p)
@@ -88,7 +51,6 @@ void print_pcap_stats(pcap_t *p)
     }
 
     if (p && pcap_stats(p, &stat) != -1) {
-
         std::cout << stat.ps_recv   << " packets received by filter" << std::endl;
         std::cout << stat.ps_drop   << " packets dropped by kernel" << std::endl;
         std::cout << stat.ps_ifdrop << " packets dropped by interface" << std::endl;
@@ -170,31 +132,6 @@ void thread_stats(pcap_t *p)
     }
 }
 
-
-inline void
-packet_handler(u_char *, const struct pcap_pkthdr *h, const u_char *payload)
-{
-    if (global::in)
-    {
-        global::in_count.fetch_add(1, std::memory_order_relaxed);
-        global::in_band.fetch_add(h->len, std::memory_order_relaxed);
-    }
-
-    if (global::out)
-    {
-        int ret = pcap_inject(global::out, payload, h->caplen);
-        if (ret != -1)
-        {
-            global::out_count.fetch_add(1, std::memory_order_relaxed);
-            global::out_band.fetch_add(h->len, std::memory_order_relaxed);
-        }
-        else
-            global::fail.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    if (global::dumper)
-        pcap_dump(reinterpret_cast<u_char *>(global::dumper), h, payload);
-}
 
 
 int
@@ -324,6 +261,8 @@ pcap_top_live(options const &opt, std::string const &filter)
 
     std::thread (thread_stats, global::in).detach();
 
+    auto packet_handler = get_packet_handler(opt);
+
     // start capture...
     //
     if (!opt.next)
@@ -348,7 +287,6 @@ pcap_top_live(options const &opt, std::string const &filter)
     }
 
     print_pcap_stats(global::in);
-
     pcap_close(global::in);
 
     return 0;
@@ -403,6 +341,8 @@ pcap_top_file(options const &opt, std::string const &filter)
     //
 
     std::cout << "reading " << opt.in.filename << "..." << std::endl;
+
+    auto packet_handler = get_packet_handler(opt);
 
     // start capture...
     //
@@ -460,7 +400,7 @@ pcap_top_gen(options const &opt, std::string const &)
 
     std::mt19937 gen;
 
-    auto ip = reinterpret_cast<iphdr *>(global::packet + 14);
+    auto ip = reinterpret_cast<iphdr *>(global::default_packet + 14);
 
     for(size_t n = 0; n < stop; n++)
     {
@@ -470,7 +410,7 @@ pcap_top_gen(options const &opt, std::string const &)
                 ip->daddr = static_cast<uint32_t>(gen());
             }
 
-            int ret = pcap_inject(global::out, global::packet, len);
+            int ret = pcap_inject(global::out, global::default_packet, len);
             if (ret >= 0)
             {
                 global::out_count.fetch_add(1, std::memory_order_relaxed);
