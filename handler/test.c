@@ -9,6 +9,8 @@ extern "C"
 	void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 	{
 		std::cout << "packet!" << std::endl;
+
+		default_handler(user, h, bytes);
 	}
 }
 
