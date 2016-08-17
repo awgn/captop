@@ -1,9 +1,13 @@
-#include <pcap/pcap.h>
-#include <dlfcn.h>
-#include <iostream>
-
 #include <global.hpp>
 #include <options.hpp>
+
+#include <iostream>
+#include <cstdlib>
+#include <stdexcept>
+
+#include <pcap/pcap.h>
+#include <dlfcn.h>
+
 
 extern "C" {
 
@@ -31,7 +35,6 @@ extern "C" {
         if (global::dumper)
             pcap_dump(reinterpret_cast<u_char *>(global::dumper), h, payload);
     }
-
 }
 
 
@@ -41,7 +44,19 @@ get_packet_handler(options const &opt)
     if (opt.handler.empty())
         return default_handler;
 
-    return nullptr;
+    if (system(("g++ " + opt.handler + " -o /tmp/handler.so -fPIC -shared").c_str()) != 0) {
+        throw std::runtime_error("g++: compiler error");
+    }
+ 	
+ 	auto handle = dlopen("/tmp/handler.so", RTLD_NOW);
+	if (!handle) 
+	    throw std::runtime_error(std::string{"dlopen: "} + dlerror());
+
+    auto r = reinterpret_cast<pcap_handler>(dlsym(handle, "handler"));
+    if (!r) 
+        throw std::runtime_error("dlsym: symbol 'handler' not found!");
+
+    return r;
 }
 
 

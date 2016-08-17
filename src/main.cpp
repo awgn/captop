@@ -30,7 +30,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.10";
+    std::string version = name + " v1.12";
 }
 
 
@@ -52,6 +52,8 @@ void usage()
                  "\nInterface:\n"
                  "  -i --interface IFNAME        Listen on interface.\n"
                  "  -o --output IFNAME           Inject packets into interface.\n"
+                 "\nHandler:\n"
+                 "  -H --handler source.c        Dynamically load the pcap handler.\n"
                  "\nFile:\n"
                  "  -r --read  FILE              Read packets from file.\n"
                  "  -w --write FILE              Write packets to file.\n"
@@ -176,6 +178,15 @@ try
 
         if ( any_strcmp(argv[i], "-R", "--rand-ip") ) {
             opt.rand_ip = true;
+            continue;
+        }
+        
+        if ( any_strcmp(argv[i], "-H", "--handler") ) {
+
+            if (++i == argc)
+                throw std::runtime_error("source code missing");
+
+            opt.handler = argv[i];
             continue;
         }
 

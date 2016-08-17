@@ -46,6 +46,8 @@ struct options
         std::string ifname;
         std::string filename;
     } out;
+
+    std::string handler;
 };
 
 namespace
@@ -61,7 +63,8 @@ namespace
         false,
         false,
         { "", "" },
-        { "", "" }
+        { "", "" },
+        ""
     };
 }
 

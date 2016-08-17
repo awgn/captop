@@ -7,8 +7,7 @@ Usage
 -----
 
 ```
-captop v1.10
-libpcap version 1.6.2
+captop v1.12 (libpcap version 1.7.4)
 
 usage: captop [OPTIONS] [BPF expression]
 
@@ -18,6 +17,7 @@ Pcap options:
   -s --snaplen VALUE           Specify the capture length of packets in bytes.
   -t --timeout NUM             Specify the timeout in msec.
   -O --no-optimize             Do not run the packet-matching code optimizer.
+     --next                    Use pcap_next instead of pcap_loop.
 
 Generator:
   -R --rand-ip                 Randomize IPs addresses.
@@ -26,6 +26,9 @@ Generator:
 Interface:
   -i --interface IFNAME        Listen on interface.
   -o --output IFNAME           Inject packets into interface.
+
+Handler:
+  -H --handler source.c        Dynamically load the pcap handler.
 
 File:
   -r --read  FILE              Read packets from file.

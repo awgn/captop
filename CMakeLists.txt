@@ -31,7 +31,7 @@ include_directories(hdr)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_OPT}")
 
-target_link_libraries(captop -lrt -lpcap -lpthread)
+target_link_libraries(captop -lrt -lpcap -lpthread -ldl)
 
 install (TARGETS captop DESTINATION bin)
 
