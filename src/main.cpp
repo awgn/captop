@@ -30,7 +30,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.12";
+    std::string version = name + " v1.13";
 }
 
 
@@ -46,6 +46,8 @@ void usage()
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
                  "     --next                    Use pcap_next instead of pcap_loop.\n"
+                 "\nRange Filters:\n"
+                 "  -F --filter [RANGES]         Range filters: e.g. -F 1-100,1024,8000-8010\n"
                  "\nGenerator:\n"
                  "  -R --rand-ip                 Randomize IPs addresses.\n"
                  "  -g --genlen  VALUE           Specify the length of injected packets.\n"
@@ -187,6 +189,16 @@ try
                 throw std::runtime_error("source code missing");
 
             opt.handler = argv[i];
+            continue;
+        }
+        
+        if ( any_strcmp(argv[i], "-F", "--filter") ) {
+
+            if (++i == argc)
+                throw std::runtime_error("filter missing");
+
+            opt.next = true;
+            opt.rfilt = range_filter{argv[i]};
             continue;
         }
 

@@ -7,7 +7,7 @@ Usage
 -----
 
 ```
-captop v1.12 (libpcap version 1.7.4)
+captop v1.13 (libpcap version 1.7.4)
 
 usage: captop [OPTIONS] [BPF expression]
 
@@ -18,6 +18,9 @@ Pcap options:
   -t --timeout NUM             Specify the timeout in msec.
   -O --no-optimize             Do not run the packet-matching code optimizer.
      --next                    Use pcap_next instead of pcap_loop.
+
+Range Filters:
+  -F --filter [RANGES]         Range filters: e.g. -F 1-100,1024,8000-8010
 
 Generator:
   -R --rand-ip                 Randomize IPs addresses.

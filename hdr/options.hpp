@@ -22,6 +22,8 @@
 #include <cstddef>
 #include <string>
 
+#include <ranges.hpp>
+
 struct options
 {
     size_t buffer_size;
@@ -48,6 +50,7 @@ struct options
     } out;
 
     std::string handler;
+    range_filter rfilt;
 };
 
 namespace
@@ -64,6 +67,7 @@ namespace
         false,
         { "", "" },
         { "", "" },
+        "",
         ""
     };
 }

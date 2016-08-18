@@ -84,6 +84,9 @@ void thread_stats(pcap_t *p)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
+    if (!p) 
+        return;
+
     if (pcap_stats(p, &stat_) < 0)
     {
         std::cout << "cannot read stats: " << pcap_geterr(p) << std::endl;
@@ -279,15 +282,17 @@ pcap_top_live(options const &opt, std::string const &filter)
             const u_char *pkt = pcap_next(global::in, &hdr);
             if (pkt)
             {
-                packet_handler(nullptr, &hdr, pkt);
+                if (opt.rfilt.empty() || opt.rfilt(n))
+                    packet_handler(nullptr, &hdr, pkt);
                 n++;
             }
+            else
+                break;
         }
     }
 
     print_pcap_stats(global::in);
     pcap_close(global::in);
-
     return 0;
 }
 
@@ -302,7 +307,6 @@ pcap_top_file(options const &opt, std::string const &filter)
 
     if (signal(SIGINT, set_stop) == SIG_ERR)
         throw std::runtime_error("signal");
-
 
     // create a pcap handler
     //
@@ -330,6 +334,7 @@ pcap_top_file(options const &opt, std::string const &filter)
 
     else if (!opt.out.ifname.empty())
         pcap_top_inject_live(opt);
+
 
     // run thread of stats
     //
@@ -359,16 +364,17 @@ pcap_top_file(options const &opt, std::string const &filter)
             const u_char *pkt = pcap_next(global::in, &hdr);
             if (pkt)
             {
-                packet_handler(nullptr, &hdr, pkt);
+                if (opt.rfilt.empty() || opt.rfilt(n))
+                    packet_handler(nullptr, &hdr, pkt);
                 n++;
             }
+            else
+                break;
         }
     }
 
     print_pcap_stats(global::in);
-
     pcap_close(global::in);
-
     return 0;
 }
 
