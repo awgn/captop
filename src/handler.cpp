@@ -54,7 +54,7 @@ get_packet_handler(options const &opt)
 
     auto r = reinterpret_cast<pcap_handler>(dlsym(handle, "handler"));
     if (!r) 
-        throw std::runtime_error(opt.handler + ": 'handler' not found!");
+        throw std::runtime_error(opt.handler + ": function 'handler' not found!");
 
     return r;
 }

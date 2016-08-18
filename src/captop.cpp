@@ -214,7 +214,7 @@ pcap_top_live(options const &opt, std::string const &filter)
     if ((status = pcap_set_snaplen(global::in, opt.snaplen)) != 0)
         throw std::runtime_error(std::string("pcap_set_snaplen: ") + pcap_geterr(global::in));
 
-    // snaplen...
+    // promisc...
     //
     if ((status = pcap_set_promisc(global::in, 1)) != 0)
         throw std::runtime_error(std::string("pcap_set_promisc: ") + pcap_geterr(global::in));
@@ -255,7 +255,6 @@ pcap_top_live(options const &opt, std::string const &filter)
     else if (!opt.out.ifname.empty())
         pcap_top_inject_live(opt);
 
-
     // run thread of stats
     //
 
@@ -272,7 +271,7 @@ pcap_top_live(options const &opt, std::string const &filter)
     }
     else
     {
-        std::cout << "using pcap_next." << std::endl;
+        std::cout << "using pcap_next..." << std::endl;
         auto stop = opt.count ? opt.count : std::numeric_limits<size_t>::max();
         for(size_t n = 0; n < stop; )
         {
@@ -352,7 +351,7 @@ pcap_top_file(options const &opt, std::string const &filter)
             throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(global::in)));
     }
     else {
-        std::cout << "using pcap_next." << std::endl;
+        std::cout << "using pcap_next..." << std::endl;
         auto stop = opt.count ? opt.count : std::numeric_limits<size_t>::max();
         for(size_t n = 0; n < stop; )
         {
