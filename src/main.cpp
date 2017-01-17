@@ -24,6 +24,7 @@
 #include <cstring>
 #include <stdexcept>
 
+#include <global.hpp>
 #include <options.hpp>
 #include <util.hpp>
 
@@ -56,6 +57,11 @@ void usage()
                  "  -o --output IFNAME           Inject packets into interface.\n"
                  "\nHandler:\n"
                  "  -H --handler source.c        Dynamically load the pcap handler.\n"
+                 "\nThread:\n"
+                 "  -N --num-thread INT          Launch multiple capture threads.\n"
+#ifdef PCAP_VERSION_FANOUT
+                 "  -F --fanout GROUP STRING     Enable pcap_fanout!\n"
+#endif
                  "\nFile:\n"
                  "  -r --read  FILE              Read packets from file.\n"
                  "  -w --write FILE              Write packets to file.\n"
@@ -182,7 +188,7 @@ try
             opt.rand_ip = true;
             continue;
         }
-        
+
         if ( any_strcmp(argv[i], "-H", "--handler") ) {
 
             if (++i == argc)
@@ -191,7 +197,7 @@ try
             opt.handler = argv[i];
             continue;
         }
-        
+
         if ( any_strcmp(argv[i], "-F", "--filter") ) {
 
             if (++i == argc)
@@ -202,6 +208,25 @@ try
             continue;
         }
 
+        if ( any_strcmp(argv[i], "-T", "--num-thread") ) {
+
+            if (++i == argc)
+                throw std::runtime_error("number of thread missing");
+
+            opt.numthread = static_cast<size_t>(std::atoi(argv[i]));
+            continue;
+        }
+
+#ifdef PCAP_VERSION_FANOUT
+        if ( any_strcmp(argv[i], "-F", "--fanout") ) {
+
+            if (++i == argc)
+                throw std::runtime_error("number of thread missing");
+
+            global::numthread = static_cast<size_t>(std::atoi(argv[i]));
+            continue;
+        }
+#endif
         if ( any_strcmp(argv[i], "-h", "-?", "--help") )
             usage();
 

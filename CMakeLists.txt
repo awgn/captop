@@ -25,7 +25,7 @@ add_executable(captop src/main.cpp
                       src/handler.cpp
                       src/global.cpp)
 
-set(CXX_FLAGS_OPT "-O2 -march=native -Wall -std=c++11")
+set(CXX_FLAGS_OPT "-O3 -march=native -Wall -std=c++11")
 
 include_directories(hdr)
 

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <pcap/pcap.h>
 #include <cstddef>
 #include <string>
 
@@ -30,6 +31,7 @@ struct options
     size_t count;
     size_t snaplen;
     size_t timeout;
+    size_t numthread;
 
     uint32_t genlen;
 
@@ -51,6 +53,12 @@ struct options
 
     std::string handler;
     range_filter rfilt;
+
+#ifdef PCAP_VERSION_FANOUT
+    int group;
+    std::string fanout;
+#endif
+
 };
 
 namespace
@@ -61,6 +69,7 @@ namespace
         0,
         65535,
         10,
+        1,
         1514,
         true,
         false,

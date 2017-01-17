@@ -17,30 +17,19 @@
  *
  */
 
+#include <capthread.hpp>
 #include <pcap/pcap.h>
 
 #include <atomic>
 #include <chrono>
+#include <vector>
+#include <memory>
 
 namespace global
 {
-    char errbuf[PCAP_ERRBUF_SIZE];
-    char errbuf2[PCAP_ERRBUF_SIZE];
+    std::atomic_bool stop;
 
-    std::atomic_long fail;
-
-    std::atomic_long in_count;
-    std::atomic_long out_count;
-
-    std::atomic_long in_band;
-    std::atomic_long out_band;
-
-    pcap_t *in, *out;
-
-    pcap_t *dead;
-    pcap_dumper_t *dumper;
-
-    std::chrono::time_point<std::chrono::system_clock> now_;
+    std::vector<std::unique_ptr<capthread>> thread;
 
     unsigned char default_packet[1514] =
     {
