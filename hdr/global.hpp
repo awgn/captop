@@ -26,6 +26,7 @@
 #include <chrono>
 #include <vector>
 #include <memory>
+#include <mutex>
 
 
 namespace global
@@ -35,4 +36,6 @@ namespace global
     extern std::vector<std::unique_ptr<capthread>> thread;
 
     extern std::atomic_bool stop;
+
+    extern std::mutex syncout;
 }

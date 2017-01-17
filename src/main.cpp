@@ -58,9 +58,9 @@ void usage()
                  "\nHandler:\n"
                  "  -H --handler source.c        Dynamically load the pcap handler.\n"
                  "\nThread:\n"
-                 "  -N --num-thread INT          Launch multiple capture threads.\n"
+                 "     --thread INT              Launch multiple capture threads.\n"
 #ifdef PCAP_VERSION_FANOUT
-                 "  -F --fanout GROUP STRING     Enable pcap_fanout!\n"
+                 "     --fanout GROUP STRING     Enable pcap_fanout!\n"
 #endif
                  "\nFile:\n"
                  "  -r --read  FILE              Read packets from file.\n"
@@ -208,7 +208,7 @@ try
             continue;
         }
 
-        if ( any_strcmp(argv[i], "-T", "--num-thread") ) {
+        if ( any_strcmp(argv[i], "--thread") ) {
 
             if (++i == argc)
                 throw std::runtime_error("number of thread missing");
@@ -218,12 +218,16 @@ try
         }
 
 #ifdef PCAP_VERSION_FANOUT
-        if ( any_strcmp(argv[i], "-F", "--fanout") ) {
+        if ( any_strcmp(argv[i], "--fanout") ) {
 
             if (++i == argc)
-                throw std::runtime_error("number of thread missing");
+                throw std::runtime_error("number of group missing");
+            opt.group = static_cast<size_t>(std::atoi(argv[i]));
 
-            global::numthread = static_cast<size_t>(std::atoi(argv[i]));
+            if (++i == argc)
+                throw std::runtime_error("fanout algorithm missing");
+
+            opt.fanout = argv[i];
             continue;
         }
 #endif

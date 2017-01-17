@@ -24,10 +24,12 @@
 #include <chrono>
 #include <vector>
 #include <memory>
+#include <mutex>
 
 namespace global
 {
     std::atomic_bool stop;
+    std::mutex syncout;
 
     std::vector<std::unique_ptr<capthread>> thread;
 

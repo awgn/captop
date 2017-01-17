@@ -266,6 +266,12 @@ struct pcap_top_file : public capthread
 };
 
 
+#ifndef PCAP_VERSION_FANOUT
+int pcap_fanout(pcap_t *p, int group, const char *fanout)
+{
+    throw std::runtime_error("pcap_fanout: not supported by this pcap library!");
+}
+#endif
 
 struct pcap_top_live : public capthread
 {
@@ -277,6 +283,8 @@ struct pcap_top_live : public capthread
     int
     operator()(options const &opt, std::string const &filter)
     {
+        std::unique_lock<std::mutex> lock(global::syncout);
+
         bpf_program fcode;
 
         // set signal handlers...
@@ -301,6 +309,8 @@ struct pcap_top_live : public capthread
 
         this->pstat = this->in;
 
+        // buffer size
+        //
         if (opt.buffer_size)
         {
             std::cout << ", buffer size " << opt.buffer_size;
@@ -329,11 +339,20 @@ struct pcap_top_live : public capthread
 
         std::cout<< std::endl;
 
+        lock.unlock();
+
         // activate...
         //
         if ((status = pcap_activate(this->in)) != 0)
             throw std::runtime_error(pcap_geterr(this->in));
 
+#ifdef PCAP_VERSION_FANOUT
+        if (!opt.fanout.empty()) {
+            if ((status = pcap_fanout(this->in, opt.group, opt.fanout.c_str())) != 0) {
+                    throw std::runtime_error(std::string("pcap_fabout: ") + pcap_geterr(this->in));
+            }
+        }
+#endif
         // set BPF...
         //
         if (!filter.empty())
