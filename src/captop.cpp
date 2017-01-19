@@ -24,6 +24,7 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
@@ -51,7 +52,23 @@ void set_stop(int)
 }
 
 
-void thread_stats()
+template <typename Dur>
+void print_stats(std::string tid, capthread::stat const &t, capthread::stat const &t_, Dur delta)
+{
+        auto in_pps  = persecond(t.in_count  - t_.in_count, delta);
+        auto out_pps = persecond(t.out_count - t_.out_count, delta);
+        auto in_bps  = persecond((t.in_band  - t_.in_band) * 8, delta);
+        auto out_bps = persecond((t.out_band - t_.out_band) * 8, delta);
+
+        std::cout << std::setw(4) << tid <<  "| ";
+        std::cout << " packets: "  << (highlight(t.in_count)      + " (" + highlight(in_pps) + " pps) ");
+        std::cout << " in-band: "  << (highlight(pretty(in_bps))  + "bit/sec ");
+        std::cout << " injected: " << (highlight(t.out_count)     + " (" + highlight(out_pps) + " pps) ");
+        std::cout << " out-band: " << (highlight(pretty(out_bps)) + "bit/sec");
+}
+
+
+void thread_stats(options const &opt, pcap_t *pstat)
 {
     struct pcap_stat stat_ = {0, 0, 0}, stat = {0, 0, 0};
 
@@ -70,41 +87,47 @@ void thread_stats()
 
     auto now_  = std::chrono::system_clock::now();
 
-    // if (pcap_stats(p, &stat_) < 0)
-    // {
-    //     std::cout << "cannot read stats: " << pcap_geterr(p) << std::endl;
-    //     return;
-    // }
+    if (pcap_stats(pstat, &stat_) < 0)
+    {
+        std::cout << "cannot read stats: " << pcap_geterr(pstat) << std::endl;
+        return;
+    }
 
-    auto tstat_ = sum(read_tstat());
+    auto tstat_ = read_tstat();
+    auto tsum_  = sum(tstat_);
 
     for(;; std::this_thread::sleep_for(std::chrono::seconds(1)))
     {
-        // pcap_stats(p, &stat);
+        pcap_stats(pstat, &stat);
 
         auto now = std::chrono::system_clock::now();
-        auto tstat = sum(read_tstat());
+        auto tstat = read_tstat();
+        auto tsum  = sum(tstat);
+
         auto delta = now - now_;
 
         auto drop    = persecond(stat.ps_drop - stat_.ps_drop, delta);
         auto ifdrop  = persecond(stat.ps_ifdrop - stat_.ps_ifdrop, delta);
 
-        auto in_pps  = persecond(tstat.in_count  - tstat_.in_count, delta);
-        auto out_pps = persecond(tstat.out_count - tstat_.out_count, delta);
-        auto in_bps  = persecond((tstat.in_band  - tstat_.in_band) * 8, delta);
-        auto out_bps = persecond((tstat.out_band - tstat_.out_band) * 8, delta);
-
-        std::cout << "packets: "       << highlight(tstat.in_count) << " (" << highlight(in_pps) << " pps) ";
-        std::cout << "drop: "          << highlight(drop)     << " pps, ifdrop: " << highlight(ifdrop) << " pps, ";
-        std::cout << "in bandwidth: "  << highlight(pretty(in_bps)) << "bit/sec ";
-        std::cout << "injected: "      << highlight(tstat.out_count) << " (" << highlight(out_pps) << " pps) ";
-        std::cout << "out bandwidth: " << highlight(pretty(out_bps)) << "bit/sec";
-
-        std::cout << std::endl;
+        if (opt.numthread > 1)
+        {
+            for(size_t i = 0; i < tstat.size(); i++) {
+                print_stats('#' + std::to_string(i), tstat[i], tstat_[i], delta);
+                std::cout << std::endl;
+            }
+            print_stats("TOT", tsum, tsum_, delta);
+            std::cout << " drop: " << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps" << std::endl;
+        }
+        else
+        {
+            print_stats("*", tsum, tsum_, delta);
+            std::cout << " drop: " << highlight(drop) << " pps, ifdrop: " << highlight(ifdrop) << " pps" << std::endl;
+        }
 
         tstat_ = tstat;
         now_   = now;
         stat_  = stat;
+        tsum_  = std::move(tsum);
 
         if (unlikely(global::stop.load(std::memory_order_relaxed)))
             break;
@@ -222,7 +245,6 @@ struct pcap_top_file : public capthread
 
         else if (!opt.out.ifname.empty())
             pcap_top_inject_live(opt, id);
-
 
         // print header...
         //
@@ -506,10 +528,11 @@ pcap_top(options const &opt, std::string const &filter)
         );
 
         global::thread.push_back(std::move(t));
-
     }
 
-    std::thread s(thread_stats);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    std::thread s(thread_stats, opt, global::thread.back()->pstat);
     s.join();
 
     return 0;
