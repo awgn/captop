@@ -42,8 +42,25 @@
 #include <options.hpp>
 #include <util.hpp>
 
+#include <pthread.h>
 
 int pcap_top_inject_file(options const &opt, int id);
+
+static inline
+void thread_affinity(std::thread &t, size_t n)
+{
+    if(t.get_id() == std::thread::id())
+        throw std::runtime_error("thread not running");
+
+    cpu_set_t cpuset;
+
+    CPU_ZERO(&cpuset);
+    CPU_SET(n, &cpuset);
+
+    auto pth = t.native_handle();
+    if ( ::pthread_setaffinity_np(pth, sizeof(cpuset), &cpuset) != 0)
+        throw std::runtime_error("pthread_setaffinity_np");
+}
 
 
 void set_stop(int)
@@ -508,17 +525,23 @@ pcap_top(options const &opt, std::string const &filter)
 
             if (!opt.in.filename.empty()) {
                 auto ctx = new pcap_top_file(n);
-                std::thread(std::ref(*ctx), opt, filter).detach();
+                std::thread t(std::ref(*ctx), opt, filter);
+                thread_affinity(t, n);
+                t.detach();
                 return ctx;
             }
             if (!opt.in.ifname.empty()) {
                 auto ctx = new pcap_top_live(n);
-                std::thread(std::ref(*ctx), opt, filter).detach();
+                std::thread t(std::ref(*ctx), opt, filter);
+                thread_affinity(t, n);
+                t.detach();
                 return ctx;
             }
             if (!opt.out.ifname.empty() || !opt.out.filename.empty()) {
                 auto ctx = new pcap_top_gen(n);
-                std::thread(std::ref(*ctx), opt, filter).detach();
+                std::thread t(std::ref(*ctx), opt, filter); 
+                thread_affinity(t, n);
+                t.detach();
                 return ctx;
             }
 
