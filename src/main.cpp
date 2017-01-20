@@ -31,7 +31,7 @@
 namespace
 {
     std::string name    = "captop";
-    std::string version = name + " v1.13";
+    std::string version = name + " v1.14";
 }
 
 
@@ -60,7 +60,7 @@ void usage()
                  "\nThread:\n"
                  "     --thread INT              Launch multiple capture threads.\n"
 #ifdef PCAP_VERSION_FANOUT
-                 "     --fanout GROUP STRING     Enable pcap_fanout!\n"
+                 "     --fanout GROUP STRING     Enable fanout!\n"
 #endif
                  "\nFile:\n"
                  "  -r --read  FILE              Read packets from file.\n"

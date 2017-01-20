@@ -7,7 +7,7 @@ Usage
 -----
 
 ```
-captop v1.13 (libpcap version 1.7.4)
+captop v1.14 (libpcap version 1.8.1)
 
 usage: captop [OPTIONS] [BPF expression]
 
@@ -32,6 +32,10 @@ Interface:
 
 Handler:
   -H --handler source.c        Dynamically load the pcap handler.
+
+Thread:
+     --thread INT              Launch multiple capture threads.
+     --fanout GROUP STRING     Enable fanout!
 
 File:
   -r --read  FILE              Read packets from file.
