@@ -58,7 +58,8 @@ void usage()
                  "\nHandler:\n"
                  "  -H --handler source.c        Dynamically load the pcap handler.\n"
                  "\nThread:\n"
-                 "     --thread INT              Launch multiple capture threads.\n"
+                 "     --thread INT              Launch multiple capture threads (one per core).\n"
+                 "     --first-core INT          Specify the index of the first core.\n"
 #ifdef PCAP_VERSION_FANOUT
                  "     --fanout GROUP STRING     Enable fanout!\n"
 #endif
@@ -214,6 +215,15 @@ try
                 throw std::runtime_error("number of thread missing");
 
             opt.numthread = static_cast<size_t>(std::atoi(argv[i]));
+            continue;
+        }
+
+        if ( any_strcmp(argv[i], "--first-core") ) {
+
+            if (++i == argc)
+                throw std::runtime_error("index of first core missing");
+
+            opt.firstcore = static_cast<size_t>(std::atoi(argv[i]));
             continue;
         }
 

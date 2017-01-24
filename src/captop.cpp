@@ -526,21 +526,21 @@ pcap_top(options const &opt, std::string const &filter)
             if (!opt.in.filename.empty()) {
                 auto ctx = new pcap_top_file(n);
                 std::thread t(std::ref(*ctx), opt, filter);
-                thread_affinity(t, n);
+                thread_affinity(t, opt.firstcore + n);
                 t.detach();
                 return ctx;
             }
             if (!opt.in.ifname.empty()) {
                 auto ctx = new pcap_top_live(n);
                 std::thread t(std::ref(*ctx), opt, filter);
-                thread_affinity(t, n);
+                thread_affinity(t, opt.firstcore + n);
                 t.detach();
                 return ctx;
             }
             if (!opt.out.ifname.empty() || !opt.out.filename.empty()) {
                 auto ctx = new pcap_top_gen(n);
-                std::thread t(std::ref(*ctx), opt, filter); 
-                thread_affinity(t, n);
+                std::thread t(std::ref(*ctx), opt, filter);
+                thread_affinity(t, opt.firstcore + n);
                 t.detach();
                 return ctx;
             }

@@ -32,6 +32,7 @@ struct options
     size_t snaplen;
     size_t timeout;
     size_t numthread;
+    size_t firstcore;
 
     uint32_t genlen;
 
@@ -70,6 +71,7 @@ namespace
         65535,
         10,
         1,
+        0,
         1514,
         true,
         false,
