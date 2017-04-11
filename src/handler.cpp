@@ -36,29 +36,32 @@ extern "C" {
     {
         auto that = reinterpret_cast<capthread *>(user);
 
-        if (that->in)
+        if (likely(that != nullptr))
         {
-            that->atomic_stat.in_count.fetch_add(1, std::memory_order_relaxed);
-            that->atomic_stat.in_band.fetch_add(h->len, std::memory_order_relaxed);
-        }
-
-        if (that->out)
-        {
-            int ret = pcap_inject(that->out, payload, h->caplen);
-            if (ret != -1)
+            if (that->in)
             {
-                that->atomic_stat.out_count.fetch_add(1, std::memory_order_relaxed);
-                that->atomic_stat.out_band.fetch_add(h->len, std::memory_order_relaxed);
+                that->atomic_stat.in_count.fetch_add(1, std::memory_order_relaxed);
+                that->atomic_stat.in_band.fetch_add(h->len, std::memory_order_relaxed);
             }
-            else
-                that->fail.fetch_add(1, std::memory_order_relaxed);
+
+            if (that->out)
+            {
+                int ret = pcap_inject(that->out, payload, h->caplen);
+                if (ret != -1)
+                {
+                    that->atomic_stat.out_count.fetch_add(1, std::memory_order_relaxed);
+                    that->atomic_stat.out_band.fetch_add(h->len, std::memory_order_relaxed);
+                }
+                else
+                    that->fail.fetch_add(1, std::memory_order_relaxed);
+            }
+
+            if (unlikely(that->dumper != nullptr))
+                pcap_dump(reinterpret_cast<u_char *>(that->dumper), h, payload);
+
+            if (unlikely(global::stop.load(std::memory_order_relaxed)))
+                pcap_breakloop(that->in);
         }
-
-        if (unlikely(global::stop.load(std::memory_order_relaxed)))
-            pcap_breakloop(that->in);
-
-        if (unlikely(that->dumper != nullptr))
-            pcap_dump(reinterpret_cast<u_char *>(that->dumper), h, payload);
     }
 }
 
