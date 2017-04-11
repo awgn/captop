@@ -91,6 +91,9 @@ void thread_stats(options const &opt, pcap_t *pstat)
 
     std::vector<capthread::stat> tstats_;
 
+    if (!pstat)
+        return;
+
     auto read_tstat = [] {
         std::vector<capthread::stat> s;
         for(auto &t : global::thread)
