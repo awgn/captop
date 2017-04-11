@@ -32,7 +32,7 @@
 extern "C" {
 
     void
-    default_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *payload)
+    captop_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *payload)
     {
         auto that = reinterpret_cast<capthread *>(user);
 
@@ -67,9 +67,9 @@ pcap_handler
 get_packet_handler(options const &opt)
 {
     if (opt.handler.empty())
-        return default_handler;
+        return captop_handler;
 
-    if (system(("g++ " + opt.handler + " -o /tmp/handler.so -fPIC -shared").c_str()) != 0) {
+    if (system(("g++ -O2 -std=c++11 " + opt.handler + " -o /tmp/handler.so -fPIC -shared").c_str()) != 0) {
         throw std::runtime_error("g++: compiler error");
     }
 
