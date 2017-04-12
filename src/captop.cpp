@@ -96,7 +96,7 @@ void thread_stats(options const &opt, pcap_t *pstat)
 
     auto read_tstat = [] {
         std::vector<capthread::stat> s;
-        for(auto &t : global::thread)
+        for(auto &t : global::thread_ctx)
         {
             s.push_back(static_cast<capthread::stat>(t->atomic_stat));
         }
@@ -165,11 +165,13 @@ void print_pcap_stats(pcap_t *p, int id)
 
     std::cout << "#" << id << " thread:" << std::endl;
 
-    std::cout << global::thread.at(id)->atomic_stat.in_count.load(std::memory_order_relaxed) << " packets captured" << std::endl;
+    auto &ctx = global::thread_ctx.at(id);
 
-    if (global::thread.at(id)->out) {
-        std::cout << global::thread.at(id)->atomic_stat.out_count.load(std::memory_order_relaxed) << " packets injected, "
-                  << global::thread.at(id)->fail.load(std::memory_order_relaxed) << " send failed" << std::endl;
+    std::cout << ctx->atomic_stat.in_count.load(std::memory_order_relaxed) << " packets captured" << std::endl;
+
+    if (ctx->out) {
+        std::cout << ctx->atomic_stat.out_count.load(std::memory_order_relaxed) << " packets injected, "
+                  << ctx->fail.load(std::memory_order_relaxed) << " send failed" << std::endl;
     }
 
     if (p && pcap_stats(p, &stat) != -1) {
@@ -191,12 +193,14 @@ pcap_top_inject_file(options const &opt, int id)
     // create a pcap handler
     //
 
-    if (!global::thread.at(id)->in)
+    auto &ctx = global::thread_ctx.at(id);
+
+    if (!ctx->in)
         throw std::runtime_error("dump to file requires input source!");
 
-    global::thread.at(id)->dumper = pcap_dump_open(global::thread.at(id)->in, opt.out.filename.c_str());
-    if (global::thread.at(id)->dumper == nullptr)
-        throw std::runtime_error(std::string("pcap_dump_open: ") + pcap_geterr(global::thread.at(id)->in));
+    ctx->dumper = pcap_dump_open(ctx->in, opt.out.filename.c_str());
+    if (ctx->dumper == nullptr)
+        throw std::runtime_error(std::string("pcap_dump_open: ") + pcap_geterr(ctx->in));
 
     return 0;
 }
@@ -208,7 +212,7 @@ pcap_top_inject_live(options const &opt, int id)
 {
     // print header...
     //
-    auto this_thread = global::thread.at(id).get();
+    auto this_thread = global::thread_ctx.at(id).get();
 
     auto snap = opt.snaplen > opt.genlen ? opt.genlen : opt.snaplen;
     std::cout << "injecting to " << opt.out.ifname << ", " << snap << " snaplen, " << opt.genlen << " genlen"  << std::endl;
@@ -269,7 +273,7 @@ struct pcap_top_file : public capthread
         // print header...
         //
 
-        std::cout << "reading " << opt.in.filename << "..." << std::endl;
+        std::cout << "reading from " << opt.in.filename << "..." << std::endl;
 
         auto packet_handler = get_packet_handler(opt);
 
@@ -297,6 +301,8 @@ struct pcap_top_file : public capthread
                     break;
             }
         }
+
+        std::cout << "closing file..." << std::endl;
 
         if (this->dumper)
             pcap_dump_close(this->dumper);
@@ -524,27 +530,28 @@ pcap_top(options const &opt, std::string const &filter)
     for(size_t n = 0; n < opt.numthread; n++)
     {
         std::unique_ptr<capthread> t(
+
             [&] () -> capthread * {
 
             if (!opt.in.filename.empty()) {
                 auto ctx = new pcap_top_file(n);
                 std::thread t(std::ref(*ctx), opt, filter);
                 thread_affinity(t, opt.firstcore + n);
-                t.detach();
+                global::thread.push_back(std::move(t));
                 return ctx;
             }
             if (!opt.in.ifname.empty()) {
                 auto ctx = new pcap_top_live(n);
                 std::thread t(std::ref(*ctx), opt, filter);
                 thread_affinity(t, opt.firstcore + n);
-                t.detach();
+                global::thread.push_back(std::move(t));
                 return ctx;
             }
             if (!opt.out.ifname.empty() || !opt.out.filename.empty()) {
                 auto ctx = new pcap_top_gen(n);
                 std::thread t(std::ref(*ctx), opt, filter);
                 thread_affinity(t, opt.firstcore + n);
-                t.detach();
+                global::thread.push_back(std::move(t));
                 return ctx;
             }
 
@@ -553,13 +560,14 @@ pcap_top(options const &opt, std::string const &filter)
             }()
         );
 
-        global::thread.push_back(std::move(t));
+        global::thread_ctx.push_back(std::move(t));
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    std::thread s(thread_stats, opt, global::thread.back()->pstat);
+    std::thread s(thread_stats, opt, global::thread_ctx.back()->pstat);
     s.join();
+
+    for(auto &t : global::thread)
+        t.join();
 
     return 0;
 }

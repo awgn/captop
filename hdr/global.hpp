@@ -35,7 +35,8 @@ namespace global
 {
     extern unsigned char default_packet[];
 
-    extern std::vector<std::unique_ptr<capthread>> thread;
+    extern std::vector<std::unique_ptr<capthread>> thread_ctx;
+    extern std::vector<std::thread> thread;
 
     extern std::atomic_bool stop;
 

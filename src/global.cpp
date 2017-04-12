@@ -20,6 +20,7 @@
 #include <capthread.hpp>
 #include <pcap/pcap.h>
 
+#include <thread>
 #include <atomic>
 #include <chrono>
 #include <vector>
@@ -31,7 +32,8 @@ namespace global
     std::atomic_bool stop;
     std::mutex syncout;
 
-    std::vector<std::unique_ptr<capthread>> thread;
+    std::vector<std::unique_ptr<capthread>> thread_ctx;
+    std::vector<std::thread> thread;
 
     unsigned char default_packet[1514] =
     {

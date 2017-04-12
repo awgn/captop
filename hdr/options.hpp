@@ -53,6 +53,9 @@ struct options
     } out;
 
     std::string handler;
+    std::string compiler;
+    std::vector<std::string> arguments;
+
     range_filter rfilt;
 
 #ifdef PCAP_VERSION_FANOUT
