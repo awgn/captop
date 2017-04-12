@@ -81,8 +81,14 @@ namespace
         false,
         { "", "" },
         { "", "" },
+        {},
+        {},
+        {},
         "",
-        ""
+#ifdef PCAP_VERSION_FANOUT
+        0,
+        {}
+#endif
     };
 }
 

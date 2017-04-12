@@ -24,9 +24,12 @@
 #include <iostream>
 #include <cstdlib>
 #include <stdexcept>
+#include <algorithm>
 
+#include <sys/types.h>
 #include <pcap/pcap.h>
 #include <dlfcn.h>
+#include <unistd.h>
 
 
 extern "C" {
@@ -69,20 +72,51 @@ extern "C" {
 pcap_handler
 get_packet_handler(options const &opt)
 {
+    auto is_suffix = [] (std::string const & value, std::string const & ending)
+    {
+        if (ending.size() > value.size()) return false;
+            return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+    };
+
     if (opt.handler.empty())
         return captop_handler;
 
-    if (system(("g++ -O2 -std=c++11 " + opt.handler + " -o /tmp/handler.so -fPIC -shared").c_str()) != 0) {
+    auto pid = getpid();
+
+    auto handler_so = "/tmp/captop_" + std::to_string(pid) + ".so";
+
+    auto compiler = !opt.compiler.empty()          ? opt.compiler :
+                    is_suffix(opt.handler, ".cpp") ? "g++ -std=c++11" :
+                    is_suffix(opt.handler, ".cc" ) ? "g++ -std=c++11" :
+                    is_suffix(opt.handler, ".c")   ? "gcc"
+                    : "";
+
+    if (compiler.empty())
+        throw std::runtime_error("captop: compiler not found for " + opt.handler + "!");
+
+    std::string args;
+
+    for(auto &x : opt.arguments)
+    {
+        args += ' ' + x;
+    }
+
+    auto cmd = compiler + " -O2 " + opt.handler + " -o " + handler_so + " -fPIC -shared" + args;
+
+    std::cout << "captop: running " << cmd << std::endl;
+
+    if (system(cmd.c_str()) != 0)
+    {
         throw std::runtime_error("g++: compiler error");
     }
 
- 	auto handle = dlopen("/tmp/handler.so", RTLD_NOW);
+ 	auto handle = dlopen(handler_so.c_str(), RTLD_NOW);
 	if (!handle)
 	    throw std::runtime_error(std::string{"dlopen: "} + dlerror());
 
     auto r = reinterpret_cast<pcap_handler>(dlsym(handle, "handler"));
     if (!r)
-        throw std::runtime_error(opt.handler + ": function 'handler' not found!");
+        throw std::runtime_error(opt.handler + ": function 'captop_handler' not found!");
 
     return r;
 }

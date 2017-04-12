@@ -57,6 +57,8 @@ void usage()
                  "  -o --output IFNAME           Inject packets into interface.\n"
                  "\nHandler:\n"
                  "  -H --handler source.c        Dynamically load the pcap handler.\n"
+                 "     --compiler PATH           Specify the compiler to use.\n"
+                 "     --arg STRING              Specify additional arguments for compiler.\n"
                  "\nThread:\n"
                  "     --thread INT              Launch multiple capture threads (one per core).\n"
                  "     --first-core INT          Specify the index of the first core.\n"
@@ -196,6 +198,24 @@ try
                 throw std::runtime_error("source code missing");
 
             opt.handler = argv[i];
+            continue;
+        }
+
+        if ( any_strcmp(argv[i], "--compiler") ) {
+
+            if (++i == argc)
+                throw std::runtime_error("compiler missing");
+
+            opt.compiler = argv[i];
+            continue;
+        }
+
+        if ( any_strcmp(argv[i], "--arg") ) {
+
+            if (++i == argc)
+                throw std::runtime_error("compiler argument missing");
+
+            opt.arguments.push_back(argv[i]);
             continue;
         }
 
