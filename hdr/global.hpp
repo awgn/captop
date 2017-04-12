@@ -20,13 +20,15 @@
 #pragma once
 
 #include <capthread.hpp>
-#include <pcap/pcap.h>
 
+#include <thread>
 #include <atomic>
 #include <chrono>
 #include <vector>
 #include <memory>
 #include <mutex>
+
+#include <pcap/pcap.h>
 
 
 namespace global

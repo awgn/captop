@@ -60,7 +60,6 @@ struct capthread
     } atomic_stat;
 
     pcap_t *in, *out;
-    pcap_t *dead;
     pcap_t *pstat;
     pcap_dumper_t *dumper;
 };
