@@ -76,11 +76,14 @@ void print_stats(std::string tid, capthread::stat const &t, capthread::stat cons
         auto out_pps = persecond(t.out_count - t_.out_count, delta);
         auto in_bps  = persecond((t.in_band  - t_.in_band) * 8, delta);
         auto out_bps = persecond((t.out_band - t_.out_band) * 8, delta);
+        auto fail_ps = persecond(t.fail - t_.fail, delta);
 
         std::cout << std::setw(4) << tid <<  "| ";
-        std::cout << " packets: "  << (highlight(t.in_count)      + " (" + highlight(in_pps) + " pps) ");
-        std::cout << " in-band: "  << (highlight(pretty(in_bps))  + "bit/sec ");
-        std::cout << " injected: " << (highlight(t.out_count)     + " (" + highlight(out_pps) + " pps) ");
+        std::cout << " packets: "  << (highlight(t.in_count)      + "(" + highlight(in_pps) + " pps)");
+        std::cout << " in-band: "  << (highlight(pretty(in_bps))  + "bit/sec");
+        std::cout << " injected: " << (highlight(t.out_count)     + "(" + highlight(out_pps) + " pps)");
+        std::cout << " fail: "     << (highlight(t.fail)          + "(" + highlight(fail_ps) + "/sec)");
+        std::cout << " out-band: " << (highlight(pretty(out_bps)) + "bit/sec");
         std::cout << " out-band: " << (highlight(pretty(out_bps)) + "bit/sec");
 }
 
@@ -170,7 +173,7 @@ void print_pcap_stats(pcap_t *p, int id)
 
     if (ctx->out) {
         std::cout << ctx->atomic_stat.out_count.load(std::memory_order_relaxed) << " packets injected, "
-                  << ctx->fail.load(std::memory_order_relaxed) << " send failed" << std::endl;
+                  << ctx->atomic_stat.fail.load(std::memory_order_relaxed) << " send failed" << std::endl;
     }
 
     if (p && pcap_stats(p, &stat) != -1) {
@@ -509,8 +512,7 @@ struct pcap_top_gen : public capthread
                     this->atomic_stat.out_band.fetch_add(len, std::memory_order_relaxed);
                 }
                 else {
-                    // FIXME
-                    // this->atomic_stat.fail.fetch_add(1, std::memory_order_relaxed);
+                    this->atomic_stat.fail.fetch_add(1, std::memory_order_relaxed);
                 }
         }
 
@@ -546,6 +548,7 @@ pcap_top(options const &opt, std::string const &filter)
                 global::thread.push_back(std::move(t));
                 return ctx;
             }
+
             if (!opt.out.ifname.empty() || !opt.out.filename.empty()) {
                 auto ctx = new pcap_top_gen(n);
                 std::thread t(std::ref(*ctx), opt, filter);

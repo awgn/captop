@@ -32,6 +32,7 @@ struct capthread
         unsigned long out_count;
         unsigned long in_band;
         unsigned long out_band;
+        unsigned long fail;
     };
 
     int id;
@@ -39,30 +40,25 @@ struct capthread
     char errbuf[PCAP_ERRBUF_SIZE];
     char errbuf2[PCAP_ERRBUF_SIZE];
 
-    std::atomic_long fail;
-
     struct atomic_stat
     {
         std::atomic_ulong in_count;
         std::atomic_ulong out_count;
         std::atomic_ulong in_band;
         std::atomic_ulong out_band;
+        std::atomic_ulong fail;
 
         operator stat() const
         {
             return {   in_count .load(std::memory_order_relaxed)
                    ,   out_count.load(std::memory_order_relaxed)
-                   ,   in_band.load  (std::memory_order_relaxed)
-                   ,   out_band.load (std::memory_order_relaxed)
+                   ,   in_band  .load(std::memory_order_relaxed)
+                   ,   out_band .load(std::memory_order_relaxed)
+                   ,   fail     .load(std::memory_order_relaxed)
                    };
         }
 
     } atomic_stat;
-
-    void shutdown() {
-        if (in)  pcap_close(in);
-        if (out) pcap_close(out);
-    }
 
     pcap_t *in, *out;
 
@@ -78,7 +74,8 @@ operator+(capthread::stat const &lhs, capthread::stat const &rhs)
     return { lhs.in_count  + rhs.in_count
            , lhs.out_count + rhs.out_count
            , lhs.in_band   + rhs.in_band
-           , lhs.out_band  + rhs.out_band };
+           , lhs.out_band  + rhs.out_band 
+           , lhs.fail      + rhs.fail};
 }
 
 inline
@@ -88,14 +85,15 @@ operator-(capthread::stat const &lhs, capthread::stat const &rhs)
     return { lhs.in_count  - rhs.in_count
            , lhs.out_count - rhs.out_count
            , lhs.in_band   - rhs.in_band
-           , lhs.out_band  - rhs.out_band };
+           , lhs.out_band  - rhs.out_band 
+           , lhs.fail      - rhs.fail };
 }
 
 inline
 capthread::stat
 sum(std::vector<capthread::stat> const &v)
 {
-    capthread::stat total {0,0,0,0};
+    capthread::stat total {0,0,0,0,0};
 
     for(auto &s : v) {
         total = total + s;
