@@ -301,11 +301,12 @@ struct pcap_top_file : public capthread
             }
         }
 
-        std::cout << "closing file..." << std::endl;
-
-        if (this->dumper)
+        if (this->dumper) {
+            std::cout << "closing file..." << std::endl;
             pcap_dump_close(this->dumper);
+        }
 
+        global::stop.store(true, std::memory_order_relaxed);
         print_pcap_stats(this->in, id);
         return 0;
     }
@@ -450,6 +451,7 @@ struct pcap_top_live : public capthread
             }
         }
 
+        global::stop.store(true, std::memory_order_relaxed);
         print_pcap_stats(this->in, this->id);
         return 0;
     }
@@ -559,14 +561,13 @@ pcap_top(options const &opt, std::string const &filter)
 
         global::thread_ctx.push_back(std::move(t));
     }
+    
+    for(auto &t : global::thread)
+       t.detach();
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     std::thread s(thread_stats, opt, global::thread_ctx.back()->pstat);
-
-    for(auto &t : global::thread)
-        t.join();
-
     s.join();
 
     for(auto &c : global::thread_ctx)

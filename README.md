@@ -7,7 +7,7 @@ Usage
 -----
 
 ```
-captop v1.16 (libpcap version 1.8.1)
+captop v1.17 (libpcap version 1.8.1)
 
 usage: captop [OPTIONS] [BPF expression]
 
