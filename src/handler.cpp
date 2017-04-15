@@ -39,6 +39,9 @@ extern "C" {
     {
         auto that = reinterpret_cast<capthread *>(user);
 
+        if (unlikely(global::stop.load(std::memory_order_relaxed)))
+            return;
+
         if (likely(that != nullptr))
         {
             if (that->in)
@@ -55,15 +58,13 @@ extern "C" {
                     that->atomic_stat.out_count.fetch_add(1, std::memory_order_relaxed);
                     that->atomic_stat.out_band.fetch_add(h->len, std::memory_order_relaxed);
                 }
-                else
-                    that->fail.fetch_add(1, std::memory_order_relaxed);
+                else {
+                    that->atomic_stat.fail.fetch_add(1, std::memory_order_relaxed);
+                }
             }
 
             if (unlikely(that->dumper != nullptr))
                 pcap_dump(reinterpret_cast<u_char *>(that->dumper), h, payload);
-
-            if (unlikely(global::stop.load(std::memory_order_relaxed)))
-                pcap_breakloop(that->in);
         }
     }
 }

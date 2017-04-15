@@ -284,7 +284,7 @@ struct pcap_top_file : public capthread
         if (!opt.next)
         {
             if (pcap_loop(this->in, opt.count, packet_handler, reinterpret_cast<u_char *>(this)) == -1)
-                throw std::runtime_error("pcap_loop: " + std::string(pcap_geterr(this->in)));
+                std::cerr << "pcap_loop: " << pcap_geterr(this->in) << std::endl;
         }
         else {
             std::cout << "using pcap_next..." << std::endl;
@@ -570,11 +570,17 @@ pcap_top(options const &opt, std::string const &filter)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    std::thread s(thread_stats, opt, global::thread_ctx.back()->pstat);
+    auto stat = [&] () -> pcap_t *{
+        for(auto &c : global::thread_ctx) {
+            if (c->pstat) {
+                return c->pstat;
+            }
+        }
+        return nullptr;
+    }();
+    
+    std::thread s(thread_stats, opt, stat);
     s.join();
-
-    for(auto &c : global::thread_ctx)
-        c->shutdown();
 
     return 0;
 }
