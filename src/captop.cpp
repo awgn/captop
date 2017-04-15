@@ -88,11 +88,7 @@ void print_stats(std::string tid, capthread::stat const &t, capthread::stat cons
 void thread_stats(options const &opt, pcap_t *pstat)
 {
     struct pcap_stat stat_ = {0, 0, 0}, stat = {0, 0, 0};
-
     std::vector<capthread::stat> tstats_;
-
-    if (!pstat)
-        return;
 
     auto read_tstat = [] {
         std::vector<capthread::stat> s;
@@ -107,8 +103,12 @@ void thread_stats(options const &opt, pcap_t *pstat)
 
     auto now_  = std::chrono::system_clock::now();
 
-    if (pcap_stats(pstat, &stat_) < 0)
-    {
+    if (!pstat) {
+        std::cout << "stats not available..." << std::endl;
+        return;
+    }
+
+    if (pcap_stats(pstat, &stat_) < 0) {
         std::cout << "cannot read stats: " << pcap_geterr(pstat) << std::endl;
         return;
     }
@@ -118,6 +118,9 @@ void thread_stats(options const &opt, pcap_t *pstat)
 
     for(;; std::this_thread::sleep_for(std::chrono::seconds(1)))
     {
+        if (unlikely(global::stop.load(std::memory_order_relaxed)))
+            break;
+
         pcap_stats(pstat, &stat);
 
         auto now = std::chrono::system_clock::now();
@@ -148,11 +151,7 @@ void thread_stats(options const &opt, pcap_t *pstat)
         now_   = now;
         stat_  = stat;
         tsum_  = std::move(tsum);
-
-        if (unlikely(global::stop.load(std::memory_order_relaxed)))
-            break;
     }
-
 }
 
 
@@ -308,7 +307,6 @@ struct pcap_top_file : public capthread
             pcap_dump_close(this->dumper);
 
         print_pcap_stats(this->in, id);
-        pcap_close(this->in);
         return 0;
     }
 };
@@ -453,7 +451,6 @@ struct pcap_top_live : public capthread
         }
 
         print_pcap_stats(this->in, this->id);
-        pcap_close(this->in);
         return 0;
     }
 
@@ -563,11 +560,17 @@ pcap_top(options const &opt, std::string const &filter)
         global::thread_ctx.push_back(std::move(t));
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     std::thread s(thread_stats, opt, global::thread_ctx.back()->pstat);
-    s.join();
 
     for(auto &t : global::thread)
         t.join();
+
+    s.join();
+
+    for(auto &c : global::thread_ctx)
+        c->shutdown();
 
     return 0;
 }

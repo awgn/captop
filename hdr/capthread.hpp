@@ -59,7 +59,13 @@ struct capthread
 
     } atomic_stat;
 
+    void shutdown() {
+        if (in)  pcap_close(in);
+        if (out) pcap_close(out);
+    }
+
     pcap_t *in, *out;
+
     pcap_t *pstat;
     pcap_dumper_t *dumper;
 };
