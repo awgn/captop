@@ -84,7 +84,6 @@ void print_stats(std::string tid, capthread::stat const &t, capthread::stat cons
         std::cout << " injected: " << (highlight(t.out_count)     + "(" + highlight(out_pps) + " pps)");
         std::cout << " fail: "     << (highlight(t.fail)          + "(" + highlight(fail_ps) + "/sec)");
         std::cout << " out-band: " << (highlight(pretty(out_bps)) + "bit/sec");
-        std::cout << " out-band: " << (highlight(pretty(out_bps)) + "bit/sec");
 }
 
 
@@ -399,7 +398,7 @@ struct pcap_top_live : public capthread
 #ifdef PCAP_VERSION_FANOUT
         if (!opt.fanout.empty()) {
             if ((status = pcap_fanout(this->in, opt.group, opt.fanout.c_str())) != 0) {
-                    throw std::runtime_error(std::string("pcap_fabout: ") + pcap_geterr(this->in));
+                    throw std::runtime_error(std::string("pcap_fanout: ") + pcap_geterr(this->in));
             }
         }
 #endif
