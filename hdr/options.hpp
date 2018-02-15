@@ -39,6 +39,8 @@ struct options
     bool   oflag;
     bool   rand_ip;
     bool   next;
+    bool   immediate;
+    bool   nonblock;
 
     struct
     {
@@ -77,6 +79,8 @@ namespace
         0,
         1514,
         true,
+        false,
+        false,
         false,
         false,
         { "", "" },

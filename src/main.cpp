@@ -45,6 +45,8 @@ void usage()
                  "  -c count                     Exit after receiving count packets.\n"
                  "  -s --snaplen VALUE           Specify the capture length of packets in bytes.\n"
                  "  -t --timeout NUM             Specify the timeout in msec.\n"
+                 "     --immediate               Enable immediate mode.\n"
+                 "     --nonblock                Enable nonblock mode.\n"
                  "  -O --no-optimize             Do not run the packet-matching code optimizer.\n"
                  "     --next                    Use pcap_next instead of pcap_loop.\n"
                  "\nRange Filters:\n"
@@ -124,6 +126,18 @@ try
                 throw std::runtime_error("snaplen missing");
 
             opt.snaplen = static_cast<size_t>(std::atoi(argv[i]));
+            continue;
+        }
+        
+        if ( any_strcmp(argv[i], "--immediate") ) {
+
+            opt.immediate = true;
+            continue;
+        }
+        
+        if ( any_strcmp(argv[i], "--nonblock") ) {
+
+            opt.nonblock = true;
             continue;
         }
 

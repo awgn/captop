@@ -367,6 +367,20 @@ struct pcap_top_live : public capthread
                 throw std::runtime_error(std::string("pcap_set_buffer_size: ") + pcap_geterr(this->in));
         }
 
+        if (opt.immediate)
+        {
+            std::cout << ", imnediate";
+            if ((status = pcap_set_immediate_mode(this->in, true)) != 0)
+                throw std::runtime_error(std::string("pcap_set_immediate_mode: ") + pcap_geterr(this->in));
+        }
+        
+        if (opt.nonblock)
+        {
+            std::cout << ", nonblock";
+            if ((status = pcap_setnonblock(this->in, true, this->errbuf)) != 0)
+                throw std::runtime_error(std::string("pcap_setnonblock: ") + pcap_geterr(this->in));
+        }
+
         // snaplen...
         //
         if ((status = pcap_set_snaplen(this->in, opt.snaplen)) != 0)
