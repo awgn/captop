@@ -16,7 +16,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 # 
 
-cmake_minimum_required(VERSION 2.4)
+cmake_minimum_required(VERSION 3.0)
+project(captop)
 
 set(CMAKE_VERBOSE_MAKEFILE 0)
 
@@ -31,7 +32,11 @@ include_directories(hdr)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_OPT}")
 
+if (LINUX)
+target_link_libraries(captop -lpthread -lpcap -ldl)
+elseif (APPLE)
 target_link_libraries(captop -lpthread -lpcap)
+endif()
 
 install (TARGETS captop DESTINATION bin)
 install_files (/include/ FILES hdr/captop.h)
