@@ -31,7 +31,7 @@ include_directories(hdr)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_OPT}")
 
-target_link_libraries(captop -lrt -lpthread -ldl /usr/local/lib/libpcap.so)
+target_link_libraries(captop -lpthread -lpcap)
 
 install (TARGETS captop DESTINATION bin)
 install_files (/include/ FILES hdr/captop.h)

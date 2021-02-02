@@ -49,6 +49,7 @@ int pcap_top_inject_file(options const &opt, int id);
 static inline
 void thread_affinity(std::thread &t, size_t n)
 {
+#ifdef __linux__
     if(t.get_id() == std::thread::id())
         throw std::runtime_error("thread not running");
 
@@ -60,6 +61,10 @@ void thread_affinity(std::thread &t, size_t n)
     auto pth = t.native_handle();
     if ( ::pthread_setaffinity_np(pth, sizeof(cpuset), &cpuset) != 0)
         throw std::runtime_error("pthread_setaffinity_np");
+#else
+    (void)t;
+    (void)n;
+#endif
 }
 
 
@@ -373,7 +378,7 @@ struct pcap_top_live : public capthread
             if ((status = pcap_set_immediate_mode(this->in, true)) != 0)
                 throw std::runtime_error(std::string("pcap_set_immediate_mode: ") + pcap_geterr(this->in));
         }
-        
+
         if (opt.nonblock)
         {
             std::cout << ", nonblock";
@@ -508,14 +513,14 @@ struct pcap_top_gen : public capthread
 
         std::mt19937 gen;
 
-        auto ip = reinterpret_cast<iphdr *>(global::default_packet + 14);
+        auto ip = reinterpret_cast<struct ip *>(global::default_packet + 14);
 
         for(size_t n = 0; n < stop; n++)
         {
                 if (opt.rand_ip)
                 {
-                    ip->saddr = static_cast<uint32_t>(gen());
-                    ip->daddr = static_cast<uint32_t>(gen());
+                    ip->ip_src = in_addr{static_cast<uint32_t>(gen())};
+                    ip->ip_dst = in_addr{static_cast<uint32_t>(gen())};
                 }
 
                 int ret = pcap_inject(this->out, global::default_packet, len);
@@ -577,7 +582,7 @@ pcap_top(options const &opt, std::string const &filter)
 
         global::thread_ctx.push_back(std::move(t));
     }
-    
+
     for(auto &t : global::thread)
        t.detach();
 
@@ -591,7 +596,7 @@ pcap_top(options const &opt, std::string const &filter)
         }
         return nullptr;
     }();
-    
+
     std::thread s(thread_stats, opt, stat);
     s.join();
 
